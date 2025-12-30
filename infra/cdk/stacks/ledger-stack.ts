@@ -404,6 +404,11 @@ export class LedgerStack extends cdk.Stack {
       description: 'CloudFront Distribution URL',
     });
 
+    new cdk.CfnOutput(this, 'DistributionId', {
+      value: distribution.distributionId,
+      description: 'CloudFront Distribution ID',
+    });
+
     new cdk.CfnOutput(this, 'UserPoolId', {
       value: userPool.userPoolId,
       description: 'Cognito User Pool ID',

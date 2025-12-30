@@ -48,7 +48,7 @@ jobs:
         id: stack-outputs
         run: |
           SITE_BUCKET=$(aws cloudformation describe-stacks --stack-name LedgerDevStack --query "Stacks[0].Outputs[?OutputKey=='SiteBucketName'].OutputValue" --output text)
-          DISTRIBUTION_ID=$(aws cloudformation describe-stacks --stack-name LedgerDevStack --query "Stacks[0].Outputs[?contains(OutputKey, 'Distribution')].OutputValue" --output text | grep -oP 'E[A-Z0-9]+')
+          DISTRIBUTION_ID=$(aws cloudformation describe-stacks --stack-name LedgerDevStack --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue" --output text)
           echo "site_bucket=$SITE_BUCKET" >> $GITHUB_OUTPUT
           echo "distribution_id=$DISTRIBUTION_ID" >> $GITHUB_OUTPUT
 
