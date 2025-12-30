@@ -5,7 +5,6 @@ node_modules/
 dist/
 build/
 *.js.map
-*.d.ts
 
 # CDK
 cdk.out/
