@@ -214,13 +214,11 @@ export class LedgerStack extends cdk.Stack {
     // ============================================================
     // Lambda Function
     // ============================================================
-    const apiLogGroup = new logs.LogGroup(this, 'ApiLogGroup', {
-      logGroupName: `/aws/lambda/${prefix}-api`,
-      retention: logs.RetentionDays.TWO_WEEKS,
-      removalPolicy: environment === 'prod'
-        ? cdk.RemovalPolicy.RETAIN
-        : cdk.RemovalPolicy.DESTROY,
-    });
+    const apiLogGroup = logs.LogGroup.fromLogGroupName(
+      this,
+      'ApiLogGroup',
+      `/aws/lambda/${prefix}-api`
+    );
 
     const apiFunction = new lambda.Function(this, 'ApiFunction', {
       functionName: `${prefix}-api`,
@@ -229,6 +227,7 @@ export class LedgerStack extends cdk.Stack {
       code: lambda.Code.fromAsset('../../backend/dist'),
       memorySize: 512,
       timeout: cdk.Duration.seconds(30),
+      logGroup: apiLogGroup,
       environment: {
         NODE_ENV: environment,
         AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
@@ -241,7 +240,6 @@ export class LedgerStack extends cdk.Stack {
         KMS_SIGNING_KEY_ID: signingKey.keyId,
         LOG_LEVEL: environment === 'prod' ? 'info' : 'debug',
       },
-      logGroup: apiLogGroup,
     });
 
     // Grant permissions
