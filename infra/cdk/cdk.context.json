@@ -1,5 +1,9 @@
 {
   "acknowledged-issue-numbers": [
     34892
-  ]
+  ],
+  "hosted-zone:account=051811877102:domainName=accountabilityledger.org:region=us-east-1": {
+    "Id": "/hostedzone/Z09294863EKNL7YN0HJY9",
+    "Name": "accountabilityledger.org."
+  }
 }

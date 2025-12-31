@@ -472,64 +472,43 @@ export class LedgerStack extends cdk.Stack {
       apiFunction
     );
 
-    // Public routes
-    httpApi.addRoutes({
-      path: '/health',
-      methods: [apigateway.HttpMethod.GET],
-      integration: lambdaIntegration,
-    });
+    // Public routes (both with and without /api prefix for CloudFront compatibility)
+    const publicPaths = [
+      '/health',
+      '/entities',
+      '/entities/{entityId}',
+      '/entities/{entityId}/cards',
+      '/cards',
+      '/cards/{cardId}',
+      '/sources/{sourceId}',
+      '/sources/{sourceId}/download',
+      '/sources/{sourceId}/verification',
+    ];
 
-    httpApi.addRoutes({
-      path: '/entities',
-      methods: [apigateway.HttpMethod.GET],
-      integration: lambdaIntegration,
-    });
+    for (const path of publicPaths) {
+      // Without /api prefix (direct API Gateway access)
+      httpApi.addRoutes({
+        path,
+        methods: [apigateway.HttpMethod.GET],
+        integration: lambdaIntegration,
+      });
+      // With /api prefix (CloudFront access)
+      httpApi.addRoutes({
+        path: `/api${path}`,
+        methods: [apigateway.HttpMethod.GET],
+        integration: lambdaIntegration,
+      });
+    }
 
-    httpApi.addRoutes({
-      path: '/entities/{entityId}',
-      methods: [apigateway.HttpMethod.GET],
-      integration: lambdaIntegration,
-    });
-
-    httpApi.addRoutes({
-      path: '/entities/{entityId}/cards',
-      methods: [apigateway.HttpMethod.GET],
-      integration: lambdaIntegration,
-    });
-
-    httpApi.addRoutes({
-      path: '/cards',
-      methods: [apigateway.HttpMethod.GET],
-      integration: lambdaIntegration,
-    });
-
-    httpApi.addRoutes({
-      path: '/cards/{cardId}',
-      methods: [apigateway.HttpMethod.GET],
-      integration: lambdaIntegration,
-    });
-
-    httpApi.addRoutes({
-      path: '/sources/{sourceId}',
-      methods: [apigateway.HttpMethod.GET],
-      integration: lambdaIntegration,
-    });
-
-    httpApi.addRoutes({
-      path: '/sources/{sourceId}/download',
-      methods: [apigateway.HttpMethod.GET],
-      integration: lambdaIntegration,
-    });
-
-    httpApi.addRoutes({
-      path: '/sources/{sourceId}/verification',
-      methods: [apigateway.HttpMethod.GET],
-      integration: lambdaIntegration,
-    });
-
-    // Admin routes (with JWT auth)
+    // Admin routes (with JWT auth) - both with and without /api prefix
     httpApi.addRoutes({
       path: '/admin/{proxy+}',
+      methods: [apigateway.HttpMethod.GET, apigateway.HttpMethod.POST, apigateway.HttpMethod.PUT],
+      integration: lambdaIntegration,
+      authorizer: jwtAuthorizer,
+    });
+    httpApi.addRoutes({
+      path: '/api/admin/{proxy+}',
       methods: [apigateway.HttpMethod.GET, apigateway.HttpMethod.POST, apigateway.HttpMethod.PUT],
       integration: lambdaIntegration,
       authorizer: jwtAuthorizer,
