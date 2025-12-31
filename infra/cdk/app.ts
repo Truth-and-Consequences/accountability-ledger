@@ -16,13 +16,16 @@ new LedgerStack(app, 'LedgerDevStack', {
 });
 
 // Production stack (deployed via tags)
-new LedgerStack(app, 'LedgerProdStack', {
-  env: {
-    account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: process.env.CDK_DEFAULT_REGION || 'us-east-1',
-  },
-  environment: 'prod',
-  domainName: process.env.DOMAIN_NAME,
-});
+// Only instantiate prod stack when DOMAIN_NAME is set to ensure CORS is configured
+if (process.env.DOMAIN_NAME) {
+  new LedgerStack(app, 'LedgerProdStack', {
+    env: {
+      account: process.env.CDK_DEFAULT_ACCOUNT,
+      region: process.env.CDK_DEFAULT_REGION || 'us-east-1',
+    },
+    environment: 'prod',
+    domainName: process.env.DOMAIN_NAME,
+  });
+}
 
 app.synth();
