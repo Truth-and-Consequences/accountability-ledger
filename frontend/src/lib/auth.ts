@@ -36,13 +36,21 @@ export interface MfaRequired {
   cognitoUser: CognitoUser;
 }
 
+export interface NewPasswordRequired {
+  success: false;
+  newPasswordRequired: true;
+  cognitoUser: CognitoUser;
+  userAttributes: Record<string, string>;
+}
+
 export interface AuthError {
   success: false;
   mfaRequired?: false;
+  newPasswordRequired?: false;
   error: string;
 }
 
-export type SignInResult = AuthResult | MfaRequired | AuthError;
+export type SignInResult = AuthResult | MfaRequired | NewPasswordRequired | AuthError;
 
 export async function signIn(
   email: string,
@@ -75,6 +83,18 @@ export async function signIn(
           error: err.message || 'Authentication failed',
         });
       },
+      newPasswordRequired: (userAttributes) => {
+        // Remove read-only attributes that can't be changed
+        delete userAttributes.email_verified;
+        delete userAttributes.phone_number_verified;
+
+        resolve({
+          success: false,
+          newPasswordRequired: true,
+          cognitoUser,
+          userAttributes,
+        });
+      },
       totpRequired: () => {
         resolve({
           success: false,
@@ -88,6 +108,30 @@ export async function signIn(
           success: false,
           mfaRequired: true,
           cognitoUser,
+        });
+      },
+    });
+  });
+}
+
+export async function completeNewPassword(
+  cognitoUser: CognitoUser,
+  newPassword: string,
+  userAttributes: Record<string, string> = {}
+): Promise<AuthResult | AuthError> {
+  return new Promise((resolve) => {
+    cognitoUser.completeNewPasswordChallenge(newPassword, userAttributes, {
+      onSuccess: (session) => {
+        // Set the token in the API client
+        const idToken = session.getIdToken().getJwtToken();
+        api.setToken(idToken);
+
+        resolve({ success: true, session });
+      },
+      onFailure: (err) => {
+        resolve({
+          success: false,
+          error: err.message || 'Failed to set new password',
         });
       },
     });

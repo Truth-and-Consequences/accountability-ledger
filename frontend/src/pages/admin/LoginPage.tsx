@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CognitoUser } from 'amazon-cognito-identity-js';
-import { signIn, verifyMfa } from '../../lib/auth';
+import { signIn, verifyMfa, completeNewPassword } from '../../lib/auth';
+
+type AuthStep = 'credentials' | 'newPassword' | 'mfa';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [mfaCode, setMfaCode] = useState('');
-  const [showMfa, setShowMfa] = useState(false);
+  const [step, setStep] = useState<AuthStep>('credentials');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cognitoUser, setCognitoUser] = useState<CognitoUser | null>(null);
@@ -19,8 +23,7 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
-      if (!showMfa) {
-        // Initial sign-in
+      if (step === 'credentials') {
         const result = await signIn(email, password);
 
         if (result.success) {
@@ -28,18 +31,50 @@ export default function AdminLoginPage() {
           return;
         }
 
+        if ('newPasswordRequired' in result && result.newPasswordRequired) {
+          setCognitoUser(result.cognitoUser);
+          setStep('newPassword');
+          return;
+        }
+
         if ('mfaRequired' in result && result.mfaRequired) {
           setCognitoUser(result.cognitoUser);
-          setShowMfa(true);
+          setStep('mfa');
+          return;
+        }
+
+        if ('error' in result) {
+          setError(result.error);
+        }
+      } else if (step === 'newPassword') {
+        if (!cognitoUser) {
+          setError('Session expired. Please sign in again.');
+          handleBack();
+          return;
+        }
+
+        if (newPassword !== confirmPassword) {
+          setError('Passwords do not match.');
+          return;
+        }
+
+        if (newPassword.length < 8) {
+          setError('Password must be at least 8 characters.');
+          return;
+        }
+
+        const result = await completeNewPassword(cognitoUser, newPassword);
+
+        if (result.success) {
+          navigate('/admin/dashboard');
           return;
         }
 
         setError(result.error);
-      } else {
-        // MFA verification
+      } else if (step === 'mfa') {
         if (!cognitoUser) {
           setError('Session expired. Please sign in again.');
-          setShowMfa(false);
+          handleBack();
           return;
         }
 
@@ -60,10 +95,24 @@ export default function AdminLoginPage() {
   }
 
   function handleBack() {
-    setShowMfa(false);
+    setStep('credentials');
     setMfaCode('');
+    setNewPassword('');
+    setConfirmPassword('');
     setCognitoUser(null);
     setError(null);
+  }
+
+  function getButtonText() {
+    if (loading) return 'Please wait...';
+    switch (step) {
+      case 'credentials':
+        return 'Sign In';
+      case 'newPassword':
+        return 'Set New Password';
+      case 'mfa':
+        return 'Verify';
+    }
   }
 
   return (
@@ -84,7 +133,7 @@ export default function AdminLoginPage() {
               </div>
             )}
 
-            {!showMfa ? (
+            {step === 'credentials' && (
               <>
                 <div>
                   <label htmlFor="email" className="label">
@@ -115,7 +164,52 @@ export default function AdminLoginPage() {
                   />
                 </div>
               </>
-            ) : (
+            )}
+
+            {step === 'newPassword' && (
+              <>
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <p className="text-sm text-blue-800">
+                    You must set a new password before continuing.
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="newPassword" className="label">
+                    New Password
+                  </label>
+                  <input
+                    id="newPassword"
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="input"
+                    minLength={8}
+                  />
+                  <p className="mt-1 text-sm text-gray-500">
+                    Must be at least 8 characters
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="confirmPassword" className="label">
+                    Confirm Password
+                  </label>
+                  <input
+                    id="confirmPassword"
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="input"
+                    minLength={8}
+                  />
+                </div>
+              </>
+            )}
+
+            {step === 'mfa' && (
               <div>
                 <label htmlFor="mfaCode" className="label">
                   MFA Code
@@ -143,10 +237,10 @@ export default function AdminLoginPage() {
               disabled={loading}
               className="btn-primary w-full"
             >
-              {loading ? 'Signing in...' : showMfa ? 'Verify' : 'Sign In'}
+              {getButtonText()}
             </button>
 
-            {showMfa && (
+            {step !== 'credentials' && (
               <button
                 type="button"
                 onClick={handleBack}
