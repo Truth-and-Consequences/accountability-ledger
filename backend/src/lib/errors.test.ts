@@ -14,6 +14,7 @@ import {
   InvalidMimeTypeError,
   IdempotencyConflictError,
   ReadOnlyModeError,
+  SourceNotPublicError,
 } from './errors.js';
 
 describe('error classes', () => {
@@ -160,6 +161,16 @@ describe('error classes', () => {
       const error = new ReadOnlyModeError();
       expect(error.message).toBe('System is in read-only mode');
       expect(error.statusCode).toBe(503);
+    });
+  });
+
+  describe('SourceNotPublicError', () => {
+    it('has correct message and status for forbidden download', () => {
+      const error = new SourceNotPublicError('src-789');
+      expect(error.message).toBe('Source not available for public download: src-789');
+      expect(error.statusCode).toBe(403);
+      expect(error.code).toBe(ErrorCode.FORBIDDEN);
+      expect(error.name).toBe('SourceNotPublicError');
     });
   });
 });

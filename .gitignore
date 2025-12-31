@@ -38,6 +38,7 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
+TODO.md
 
 # Secrets (should never be committed)
 *.pem
