@@ -12,6 +12,9 @@ import * as kms from 'aws-cdk-lib/aws-kms';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as wafv2 from 'aws-cdk-lib/aws-wafv2';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
 import { Construct } from 'constructs';
 
 export interface LedgerStackProps extends cdk.StackProps {
@@ -578,10 +581,47 @@ export class LedgerStack extends cdk.Stack {
     });
 
     // ============================================================
+    // Custom Domain Setup (Certificate + Route53)
+    // ============================================================
+    let certificate: acm.ICertificate | undefined;
+    let hostedZone: route53.IHostedZone | undefined;
+
+    if (domainName) {
+      // Extract the root domain for hosted zone lookup
+      // e.g., "www.example.com" -> "example.com", "example.com" -> "example.com"
+      const domainParts = domainName.split('.');
+      const rootDomain = domainParts.length > 2
+        ? domainParts.slice(-2).join('.')
+        : domainName;
+
+      // Look up the existing hosted zone
+      hostedZone = route53.HostedZone.fromLookup(this, 'HostedZone', {
+        domainName: rootDomain,
+      });
+
+      // Create ACM certificate with DNS validation
+      // Must be in us-east-1 for CloudFront (CDK handles cross-region automatically)
+      certificate = new acm.Certificate(this, 'Certificate', {
+        domainName: domainName,
+        subjectAlternativeNames: domainName.startsWith('www.')
+          ? [domainName.slice(4)] // Add non-www if domain is www
+          : [`www.${domainName}`], // Add www if domain is non-www
+        validation: acm.CertificateValidation.fromDns(hostedZone),
+      });
+    }
+
+    // ============================================================
     // CloudFront Distribution
     // ============================================================
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       webAclId: webAcl.attrArn,
+      // Custom domain configuration
+      domainNames: domainName
+        ? domainName.startsWith('www.')
+          ? [domainName, domainName.slice(4)]
+          : [domainName, `www.${domainName}`]
+        : undefined,
+      certificate: certificate,
       defaultBehavior: {
         origin: cloudfrontOrigins.S3BucketOrigin.withOriginAccessControl(siteBucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -610,6 +650,33 @@ export class LedgerStack extends cdk.Stack {
         },
       ],
     });
+
+    // ============================================================
+    // Route53 DNS Records
+    // ============================================================
+    if (hostedZone && domainName) {
+      // Create A record for the domain (apex or www)
+      new route53.ARecord(this, 'SiteAliasRecord', {
+        zone: hostedZone,
+        recordName: domainName,
+        target: route53.RecordTarget.fromAlias(
+          new route53Targets.CloudFrontTarget(distribution)
+        ),
+      });
+
+      // Create A record for the alternate domain (www or apex)
+      const alternateDomain = domainName.startsWith('www.')
+        ? domainName.slice(4)
+        : `www.${domainName}`;
+
+      new route53.ARecord(this, 'SiteAliasRecordAlternate', {
+        zone: hostedZone,
+        recordName: alternateDomain,
+        target: route53.RecordTarget.fromAlias(
+          new route53Targets.CloudFrontTarget(distribution)
+        ),
+      });
+    }
 
     // ============================================================
     // Outputs
