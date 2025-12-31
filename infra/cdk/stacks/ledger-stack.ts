@@ -15,6 +15,8 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as eventsTargets from 'aws-cdk-lib/aws-events-targets';
 import { Construct } from 'constructs';
 
 export interface LedgerStackProps extends cdk.StackProps {
@@ -247,6 +249,35 @@ export class LedgerStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY, // Always destroy, just cache
     });
 
+    // Intake table (for automated RSS ingestion)
+    // PK: FEED#{feedId}, SK: TS#{publishedAtIso}#{intakeId}
+    // GSI1: STATUS#{status}, GSI1SK: TS#{ingestedAt}
+    // GSI2: DEDUPE#{dedupeKey}, GSI2SK: intakeId
+    const intakeTable = new dynamodb.Table(this, 'IntakeTable', {
+      tableName: `${prefix}-intake`,
+      partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
+      removalPolicy: environment === 'prod'
+        ? cdk.RemovalPolicy.RETAIN
+        : cdk.RemovalPolicy.DESTROY,
+    });
+
+    // GSI1: Query by status (NEW, REVIEWED, etc.)
+    intakeTable.addGlobalSecondaryIndex({
+      indexName: 'GSI1',
+      partitionKey: { name: 'GSI1PK', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'GSI1SK', type: dynamodb.AttributeType.STRING },
+    });
+
+    // GSI2: Dedupe lookups
+    intakeTable.addGlobalSecondaryIndex({
+      indexName: 'GSI2',
+      partitionKey: { name: 'GSI2PK', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'GSI2SK', type: dynamodb.AttributeType.STRING },
+    });
+
     // ============================================================
     // Cognito User Pool
     // ============================================================
@@ -347,12 +378,60 @@ export class LedgerStack extends cdk.Stack {
     sourcesTable.grantReadWriteData(apiFunction);
     auditTable.grantReadWriteData(apiFunction);
     idempotencyTable.grantReadWriteData(apiFunction);
+    intakeTable.grantReadWriteData(apiFunction);
     sourcesBucket.grantReadWrite(apiFunction);
     signingKey.grant(apiFunction, 'kms:Sign', 'kms:GetPublicKey');
     readOnlyParam.grantRead(apiFunction);
     if (backupBucket) {
       backupBucket.grantWrite(apiFunction);
     }
+
+    // ============================================================
+    // Intake Ingest Lambda (scheduled RSS ingestion)
+    // ============================================================
+    const intakeLogGroup = logs.LogGroup.fromLogGroupName(
+      this,
+      'IntakeLogGroup',
+      `/aws/lambda/${prefix}-intake-ingest`
+    );
+
+    const intakeIngestFunction = new lambda.Function(this, 'IntakeIngestFunction', {
+      functionName: `${prefix}-intake-ingest`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'handlers/intake-ingest.handler',
+      code: lambda.Code.fromAsset('../../backend/dist'),
+      memorySize: 512,
+      timeout: cdk.Duration.minutes(5), // RSS fetching may take time
+      logGroup: intakeLogGroup,
+      environment: {
+        NODE_ENV: environment,
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
+        INTAKE_TABLE: intakeTable.tableName,
+        SOURCES_TABLE: sourcesTable.tableName,
+        SOURCES_BUCKET: sourcesBucket.bucketName,
+        KMS_SIGNING_KEY_ID: signingKey.keyId,
+        LOG_LEVEL: environment === 'prod' ? 'info' : 'debug',
+      },
+    });
+
+    // Grant permissions to intake function
+    intakeTable.grantReadWriteData(intakeIngestFunction);
+    sourcesTable.grantReadWriteData(intakeIngestFunction);
+    sourcesBucket.grantReadWrite(intakeIngestFunction);
+    signingKey.grant(intakeIngestFunction, 'kms:Sign', 'kms:GetPublicKey');
+
+    // Schedule: Run daily at 6 AM UTC (adjust as needed)
+    const intakeScheduleRule = new events.Rule(this, 'IntakeScheduleRule', {
+      ruleName: `${prefix}-intake-schedule`,
+      schedule: events.Schedule.cron({ minute: '0', hour: '6' }),
+      description: 'Daily RSS ingestion for government agency feeds',
+    });
+
+    intakeScheduleRule.addTarget(
+      new eventsTargets.LambdaFunction(intakeIngestFunction, {
+        retryAttempts: 2,
+      })
+    );
 
     // ============================================================
     // API Gateway

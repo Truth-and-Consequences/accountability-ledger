@@ -11,6 +11,7 @@ export const config = {
     audit: process.env.AUDIT_TABLE || 'LedgerAudit',
     idempotency: process.env.IDEMPOTENCY_TABLE || 'LedgerIdempotency',
     tagIndex: process.env.TAG_INDEX_TABLE || 'LedgerTagIndex',
+    intake: process.env.INTAKE_TABLE || 'LedgerIntake',
   },
 
   // S3 Buckets

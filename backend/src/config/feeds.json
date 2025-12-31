@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "globalRails": {
+    "maxItemsPerRun": 20,
+    "maxPerFeedPerRun": 5,
+    "maxRequestsPerHostPerMinute": 30,
+    "minDelayMsBetweenRequestsSameHost": 750,
+    "fetchTimeoutMs": 15000,
+    "maxHtmlSnapshotBytes": 5242880,
+    "maxPdfBytes": 26214400,
+    "allowedDomains": [
+      "www.ftc.gov",
+      "ftc.gov",
+      "www.sec.gov",
+      "sec.gov",
+      "www.justice.gov",
+      "justice.gov",
+      "www.gao.gov",
+      "gao.gov"
+    ],
+    "stripQueryParams": [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_term",
+      "utm_content",
+      "fbclid",
+      "gclid",
+      "mc_cid",
+      "mc_eid"
+    ]
+  },
+  "feeds": [
+    {
+      "id": "ftc_press_releases",
+      "publisher": "FTC",
+      "name": "FTC Press Releases",
+      "url": "https://www.ftc.gov/feeds/press-release.xml",
+      "defaultTags": ["enforcement", "consumer-protection"],
+      "perFeedCap": 5,
+      "enabled": true
+    },
+    {
+      "id": "ftc_competition_press_releases",
+      "publisher": "FTC",
+      "name": "FTC Competition Press Releases",
+      "url": "https://www.ftc.gov/feeds/press-release-competition.xml",
+      "defaultTags": ["enforcement", "antitrust", "competition"],
+      "perFeedCap": 5,
+      "enabled": true
+    },
+    {
+      "id": "ftc_consumer_protection_press_releases",
+      "publisher": "FTC",
+      "name": "FTC Consumer Protection Press Releases",
+      "url": "https://www.ftc.gov/feeds/press-release-consumer-protection.xml",
+      "defaultTags": ["enforcement", "consumer-protection"],
+      "perFeedCap": 5,
+      "enabled": true
+    },
+    {
+      "id": "ftc_hsr_early_termination",
+      "publisher": "FTC",
+      "name": "FTC HSR Early Termination Notices",
+      "url": "https://www.ftc.gov/feeds/hsr-early-termination-notices.xml",
+      "defaultTags": ["mergers", "hsr", "competition"],
+      "perFeedCap": 3,
+      "enabled": false
+    },
+    {
+      "id": "sec_press_releases",
+      "publisher": "SEC",
+      "name": "SEC Press Releases",
+      "url": "https://www.sec.gov/news/pressreleases.rss",
+      "defaultTags": ["securities", "enforcement"],
+      "perFeedCap": 5,
+      "enabled": true
+    },
+    {
+      "id": "sec_litigation_releases",
+      "publisher": "SEC",
+      "name": "SEC Litigation Releases",
+      "url": "https://www.sec.gov/enforcement-litigation/litigation-releases/rss",
+      "defaultTags": ["securities", "litigation", "enforcement"],
+      "perFeedCap": 5,
+      "enabled": true
+    },
+    {
+      "id": "sec_trading_suspensions",
+      "publisher": "SEC",
+      "name": "SEC Trading Suspensions",
+      "url": "https://www.sec.gov/enforcement-litigation/trading-suspensions/rss",
+      "defaultTags": ["securities", "trading-suspension"],
+      "perFeedCap": 3,
+      "enabled": false
+    },
+    {
+      "id": "doj_all_news",
+      "publisher": "DOJ",
+      "name": "DOJ All News",
+      "url": "https://www.justice.gov/news/rss?m=1",
+      "defaultTags": ["doj", "enforcement"],
+      "perFeedCap": 5,
+      "enabled": true
+    },
+    {
+      "id": "gao_reports",
+      "publisher": "GAO",
+      "name": "GAO Reports",
+      "url": "https://www.gao.gov/rss/reports.xml",
+      "defaultTags": ["audit", "oversight", "gao"],
+      "perFeedCap": 5,
+      "enabled": true
+    },
+    {
+      "id": "gao_reports_brief",
+      "publisher": "GAO",
+      "name": "GAO Reports (Brief)",
+      "url": "https://www.gao.gov/rss/reports_450.xml",
+      "defaultTags": ["audit", "oversight", "gao"],
+      "perFeedCap": 5,
+      "enabled": false
+    },
+    {
+      "id": "gao_press_releases",
+      "publisher": "GAO",
+      "name": "GAO Press Releases",
+      "url": "https://www.gao.gov/rss/press.xml",
+      "defaultTags": ["gao", "press-release"],
+      "perFeedCap": 3,
+      "enabled": false
+    }
+  ]
+}
