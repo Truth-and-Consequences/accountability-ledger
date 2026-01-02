@@ -5,12 +5,14 @@ import {
   PutCommand,
   UpdateCommand,
   QueryCommand,
+  ScanCommand,
   BatchWriteCommand,
   TransactWriteCommand,
   type GetCommandInput,
   type PutCommandInput,
   type UpdateCommandInput,
   type QueryCommandInput,
+  type ScanCommandInput,
   type BatchWriteCommandInput,
   type TransactWriteCommandInput,
 } from '@aws-sdk/lib-dynamodb';
@@ -48,6 +50,16 @@ export async function queryItems<T>(
   params: QueryCommandInput
 ): Promise<{ items: T[]; lastEvaluatedKey?: Record<string, unknown> }> {
   const result = await docClient.send(new QueryCommand(params));
+  return {
+    items: (result.Items as T[]) || [],
+    lastEvaluatedKey: result.LastEvaluatedKey as Record<string, unknown> | undefined,
+  };
+}
+
+export async function scanItems<T>(
+  params: ScanCommandInput
+): Promise<{ items: T[]; lastEvaluatedKey?: Record<string, unknown> }> {
+  const result = await docClient.send(new ScanCommand(params));
   return {
     items: (result.Items as T[]) || [],
     lastEvaluatedKey: result.LastEvaluatedKey as Record<string, unknown> | undefined,

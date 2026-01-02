@@ -5,6 +5,7 @@ import {
   getItem,
   putItem,
   queryItems,
+  scanItems,
   encodeCursor,
   decodeCursor,
   stripKeys,
@@ -126,10 +127,10 @@ export async function listEntities(
   }
 
   // Otherwise, scan all entities (not ideal but works for MVP)
-  // In production, you'd want a better approach
-  const { items, lastEvaluatedKey } = await queryItems<Entity & { PK: string; SK: string }>({
+  // In production, you'd want a GSI with a fixed partition key
+  const { items, lastEvaluatedKey } = await scanItems<Entity & { PK: string; SK: string }>({
     TableName: TABLE,
-    KeyConditionExpression: 'begins_with(PK, :prefix) AND SK = :sk',
+    FilterExpression: 'begins_with(PK, :prefix) AND SK = :sk',
     ExpressionAttributeValues: {
       ':prefix': 'ENTITY#',
       ':sk': 'META',
