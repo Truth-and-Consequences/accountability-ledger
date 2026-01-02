@@ -4,7 +4,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigatewayv2';
 import * as apigatewayIntegrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
-import * as apigatewayAuthorizers from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
+// JWT authorizer removed - auth handled in Lambda to avoid CloudFront error response conflicts
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as cloudfrontOrigins from 'aws-cdk-lib/aws-cloudfront-origins';
@@ -458,15 +458,6 @@ export class LedgerStack extends cdk.Stack {
         : undefined,
     });
 
-    // JWT Authorizer for admin routes
-    const jwtAuthorizer = new apigatewayAuthorizers.HttpJwtAuthorizer(
-      'JwtAuthorizer',
-      `https://cognito-idp.${this.region}.amazonaws.com/${userPool.userPoolId}`,
-      {
-        jwtAudience: [userPoolClient.userPoolClientId],
-      }
-    );
-
     const lambdaIntegration = new apigatewayIntegrations.HttpLambdaIntegration(
       'LambdaIntegration',
       apiFunction
@@ -500,18 +491,18 @@ export class LedgerStack extends cdk.Stack {
       });
     }
 
-    // Admin routes (with JWT auth) - both with and without /api prefix
+    // Admin routes - both with and without /api prefix
+    // Note: JWT auth is handled in Lambda, not API Gateway, to avoid 403s that CloudFront
+    // error responses would intercept and turn into index.html
     httpApi.addRoutes({
       path: '/admin/{proxy+}',
       methods: [apigateway.HttpMethod.GET, apigateway.HttpMethod.POST, apigateway.HttpMethod.PUT],
       integration: lambdaIntegration,
-      authorizer: jwtAuthorizer,
     });
     httpApi.addRoutes({
       path: '/api/admin/{proxy+}',
       methods: [apigateway.HttpMethod.GET, apigateway.HttpMethod.POST, apigateway.HttpMethod.PUT],
       integration: lambdaIntegration,
-      authorizer: jwtAuthorizer,
     });
 
     // ============================================================
