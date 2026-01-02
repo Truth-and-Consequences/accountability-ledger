@@ -15,10 +15,13 @@ export default function AdminReviewQueuePage() {
   async function loadReviewQueue() {
     try {
       setLoading(true);
-      // In a real implementation, we'd filter by status=REVIEW
-      // For now, this loads all cards (public endpoint shows only published)
-      const result = await api.listCards({ limit: 50 });
-      setCards(result.items);
+      // Load all DRAFT and REVIEW cards
+      const result = await api.listAdminCards({ limit: 50 });
+      // Filter to show only DRAFT and REVIEW status cards
+      const reviewableCards = result.items.filter(
+        (c) => c.status === 'DRAFT' || c.status === 'REVIEW'
+      );
+      setCards(reviewableCards);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load queue');
     } finally {

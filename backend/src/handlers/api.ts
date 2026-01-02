@@ -332,6 +332,13 @@ const routes: Record<string, Record<string, RouteHandler>> = {
   },
 
   // Admin: Cards
+  'GET /admin/cards': {
+    handler: async (event, _ctx) => {
+      const query = cardQuerySchema.parse(getQueryParams(event));
+      const result = await cardService.listCards(query, true); // true = include all statuses
+      return jsonResponse(200, result);
+    },
+  },
   'POST /admin/cards': {
     handler: async (event, ctx) => {
       const input = createCardSchema.parse(parseBody(event));

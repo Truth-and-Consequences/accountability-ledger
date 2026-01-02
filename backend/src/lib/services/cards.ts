@@ -5,6 +5,7 @@ import {
   getItem,
   putItem,
   queryItems,
+  scanItems,
   transactWrite,
   encodeCursor,
   decodeCursor,
@@ -357,6 +358,47 @@ async function saveCardVersion(card: EvidenceCard): Promise<EvidenceCard> {
   });
 
   return card;
+}
+
+/**
+ * List cards with optional status filter
+ * @param query Query parameters
+ * @param includeAllStatuses If true, returns all cards regardless of status (for admin)
+ */
+export async function listCards(
+  query: CardQueryInput,
+  includeAllStatuses = false
+): Promise<PaginatedResponse<EvidenceCard>> {
+  if (!includeAllStatuses) {
+    // Public endpoint - only show published
+    return listPublishedCards(query);
+  }
+
+  // Admin endpoint - scan all cards with optional status filter
+  const limit = query.limit || 20;
+  const exclusiveStartKey = query.cursor ? decodeCursor(query.cursor) : undefined;
+
+  const { items, lastEvaluatedKey } = await scanItems<EvidenceCard & { PK: string; SK: string }>({
+    TableName: TABLE,
+    FilterExpression: query.status
+      ? 'begins_with(PK, :prefix) AND #status = :status'
+      : 'begins_with(PK, :prefix)',
+    ExpressionAttributeNames: query.status ? { '#status': 'status' } : undefined,
+    ExpressionAttributeValues: {
+      ':prefix': 'CARD#',
+      ...(query.status && { ':status': query.status }),
+    },
+    Limit: limit,
+    ExclusiveStartKey: exclusiveStartKey,
+  });
+
+  const cards = items.map((item) => stripKeys(item));
+
+  return {
+    items: cards,
+    cursor: lastEvaluatedKey ? encodeCursor(lastEvaluatedKey) : undefined,
+    hasMore: !!lastEvaluatedKey,
+  };
 }
 
 export async function listPublishedCards(
