@@ -6,6 +6,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   signOut: () => void;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -35,8 +36,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false);
   };
 
+  const refreshAuth = async () => {
+    try {
+      const session = await getCurrentSession();
+      setIsAuthenticated(session !== null && session.isValid());
+    } catch {
+      setIsAuthenticated(false);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, signOut }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, signOut, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );

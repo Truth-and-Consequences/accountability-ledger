@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CognitoUser } from 'amazon-cognito-identity-js';
 import { signIn, verifyMfa, completeNewPassword, verifyMfaSetup } from '../../lib/auth';
+import { useAuth } from '../../lib/AuthContext';
 
 type AuthStep = 'credentials' | 'newPassword' | 'mfaSetup' | 'mfa';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
+  const { refreshAuth } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -28,6 +30,7 @@ export default function AdminLoginPage() {
         const result = await signIn(email, password);
 
         if (result.success) {
+          await refreshAuth();
           navigate('/admin/dashboard');
           return;
         }
@@ -74,6 +77,7 @@ export default function AdminLoginPage() {
         const result = await completeNewPassword(cognitoUser, newPassword);
 
         if (result.success) {
+          await refreshAuth();
           navigate('/admin/dashboard');
           return;
         }
@@ -98,6 +102,7 @@ export default function AdminLoginPage() {
         const result = await verifyMfaSetup(cognitoUser, mfaCode);
 
         if (result.success) {
+          await refreshAuth();
           navigate('/admin/dashboard');
           return;
         }
@@ -113,6 +118,7 @@ export default function AdminLoginPage() {
         const result = await verifyMfa(cognitoUser, mfaCode);
 
         if (result.success) {
+          await refreshAuth();
           navigate('/admin/dashboard');
           return;
         }
