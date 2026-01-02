@@ -10,7 +10,7 @@ import type {
   IntakeRunSummary,
 } from '@ledger/shared';
 import { config } from '../config.js';
-import { putItem, getItem, queryItems, stripKeys } from '../dynamodb.js';
+import { putItem, getItem, queryItems, scanItems, stripKeys } from '../dynamodb.js';
 import { logger } from '../logger.js';
 import { NotFoundError } from '../errors.js';
 import feedsConfig from '../../config/feeds.json' with { type: 'json' };
@@ -454,23 +454,19 @@ export async function listIntakeByStatus(
 }
 
 /**
- * Get a single intake item by its composite key
+ * Get a single intake item by its intakeId
+ * Uses a scan with filter - not ideal for production, but works for MVP
  */
 export async function getIntakeItem(intakeId: string): Promise<IntakeItem> {
-  // We need to find the item by intakeId - query GSI2 which has DEDUPE#key -> intakeId
-  // But we don't have an index on intakeId directly, so we scan the table
-  // For a production system, you'd add another GSI or use a different key strategy
-
-  // First, try to find via GSI2 by querying all feeds
-  // This is inefficient but works for MVP - in production, add GSI on intakeId
-  const result = await queryItems<IntakeItem & { PK: string; SK: string }>({
+  // Scan with filter on intakeId - inefficient but works for MVP
+  // In production, add a GSI with intakeId as partition key
+  const result = await scanItems<IntakeItem & { PK: string; SK: string }>({
     TableName: TABLE,
-    IndexName: 'GSI2',
-    KeyConditionExpression: 'GSI2SK = :id',
+    FilterExpression: 'intakeId = :id',
     ExpressionAttributeValues: {
       ':id': intakeId,
     },
-    Limit: 1,
+    Limit: 100, // Scan more items since filter is applied after
   });
 
   if (result.items.length === 0) {
