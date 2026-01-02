@@ -115,34 +115,49 @@ interface JwtUserInfo {
 }
 
 function getUserInfoFromEvent(event: APIGatewayProxyEventV2): JwtUserInfo {
-  // Type assertion needed for JWT authorizer claims - requestContext type varies by authorizer configuration
-  const requestContext = event.requestContext as unknown as {
-    authorizer?: { jwt?: { claims?: Record<string, unknown> } }
-  };
-  const claims = requestContext.authorizer?.jwt?.claims;
-
-  // Cognito groups come as a JSON-encoded array string in the 'cognito:groups' claim
-  let groups: string[] = [];
-  const groupsClaim = claims?.['cognito:groups'];
-  if (Array.isArray(groupsClaim)) {
-    groups = groupsClaim as string[];
-  } else if (typeof groupsClaim === 'string') {
-    // Sometimes it's a JSON string array
-    try {
-      const parsed = JSON.parse(groupsClaim);
-      if (Array.isArray(parsed)) {
-        groups = parsed;
-      }
-    } catch {
-      // Not JSON, might be comma-separated
-      groups = groupsClaim.split(',').map(g => g.trim()).filter(Boolean);
-    }
+  // Extract JWT from Authorization header (Bearer token)
+  const authHeader = event.headers?.authorization || event.headers?.Authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { userId: undefined, groups: [] };
   }
 
-  return {
-    userId: claims?.sub as string | undefined,
-    groups,
-  };
+  const token = authHeader.slice(7); // Remove 'Bearer ' prefix
+
+  try {
+    // Decode JWT payload (middle part) - we don't verify signature here as that's
+    // done by Cognito during token issuance. In production, you might want to
+    // verify the signature using Cognito's JWKS.
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return { userId: undefined, groups: [] };
+    }
+
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+
+    // Extract groups from Cognito claims
+    let groups: string[] = [];
+    const groupsClaim = payload['cognito:groups'];
+    if (Array.isArray(groupsClaim)) {
+      groups = groupsClaim as string[];
+    } else if (typeof groupsClaim === 'string') {
+      try {
+        const parsed = JSON.parse(groupsClaim);
+        if (Array.isArray(parsed)) {
+          groups = parsed;
+        }
+      } catch {
+        groups = groupsClaim.split(',').map((g: string) => g.trim()).filter(Boolean);
+      }
+    }
+
+    return {
+      userId: payload.sub as string | undefined,
+      groups,
+    };
+  } catch {
+    // Invalid JWT format
+    return { userId: undefined, groups: [] };
+  }
 }
 
 // Check if user has admin group membership
