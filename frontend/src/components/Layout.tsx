@@ -107,6 +107,18 @@ export default function Layout({ isAdmin = false }: LayoutProps) {
               >
                 Corrections
               </Link>
+              <Link
+                to="/terms"
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Terms
+              </Link>
+              <Link
+                to="/privacy"
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Privacy
+              </Link>
             </div>
           </div>
         </div>

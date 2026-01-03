@@ -7,6 +7,8 @@ import EntityPage from './pages/EntityPage';
 import CardPage from './pages/CardPage';
 import AboutPage from './pages/AboutPage';
 import CorrectionsPage from './pages/CorrectionsPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 // Admin pages
@@ -29,6 +31,8 @@ function App() {
           <Route path="cards/:cardId" element={<CardPage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="corrections" element={<CorrectionsPage />} />
+          <Route path="terms" element={<TermsPage />} />
+          <Route path="privacy" element={<PrivacyPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
 
