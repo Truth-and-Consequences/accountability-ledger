@@ -85,6 +85,55 @@ export const RelationshipStatus = {
 } as const;
 export type RelationshipStatus = (typeof RelationshipStatus)[keyof typeof RelationshipStatus];
 
+// Claim stance - who is making the claim
+export const ClaimStance = {
+  AGENCY_ALLEGES: 'AGENCY_ALLEGES',
+  COURT_HELD: 'COURT_HELD',
+  COMPANY_DISCLOSED: 'COMPANY_DISCLOSED',
+  SETTLEMENT_TERMS: 'SETTLEMENT_TERMS',
+  WHISTLEBLOWER_ALLEGED: 'WHISTLEBLOWER_ALLEGED',
+  INSPECTOR_FOUND: 'INSPECTOR_FOUND',
+  MEDIA_REPORTED: 'MEDIA_REPORTED',
+} as const;
+export type ClaimStance = (typeof ClaimStance)[keyof typeof ClaimStance];
+
+// Claim type - category of the claim
+export const ClaimType = {
+  ENFORCEMENT_ACTION: 'ENFORCEMENT_ACTION',
+  AUDIT_FINDING: 'AUDIT_FINDING',
+  DISCLOSURE: 'DISCLOSURE',
+  SETTLEMENT: 'SETTLEMENT',
+  COURT_RULING: 'COURT_RULING',
+  PENALTY: 'PENALTY',
+  INJUNCTION: 'INJUNCTION',
+  CONSENT_DECREE: 'CONSENT_DECREE',
+  RECALL: 'RECALL',
+  WARNING_LETTER: 'WARNING_LETTER',
+  INVESTIGATION: 'INVESTIGATION',
+} as const;
+export type ClaimType = (typeof ClaimType)[keyof typeof ClaimType];
+
+// Monetary amount type
+export const MonetaryAmountType = {
+  PENALTY: 'PENALTY',
+  SETTLEMENT: 'SETTLEMENT',
+  RESTITUTION: 'RESTITUTION',
+  DISGORGEMENT: 'DISGORGEMENT',
+  OTHER: 'OTHER',
+} as const;
+export type MonetaryAmountType = (typeof MonetaryAmountType)[keyof typeof MonetaryAmountType];
+
+// Affected count unit
+export const AffectedCountUnit = {
+  INDIVIDUALS: 'INDIVIDUALS',
+  ACCOUNTS: 'ACCOUNTS',
+  TRANSACTIONS: 'TRANSACTIONS',
+  FACILITIES: 'FACILITIES',
+  PRODUCTS: 'PRODUCTS',
+  OTHER: 'OTHER',
+} as const;
+export type AffectedCountUnit = (typeof AffectedCountUnit)[keyof typeof AffectedCountUnit];
+
 // Audit log action types
 export const AuditAction = {
   CREATE_ENTITY: 'CREATE_ENTITY',

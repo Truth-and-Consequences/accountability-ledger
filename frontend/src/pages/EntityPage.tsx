@@ -6,9 +6,11 @@ import type {
   RelationshipWithEntities,
   OwnershipTreeResponse,
   OwnershipNode,
+  EntitySummary,
 } from '@ledger/shared';
 import { api } from '../lib/api';
 import EvidenceCard from '../components/EvidenceCard';
+import EntitySummarySection from '../components/EntitySummarySection';
 
 const entityTypes: Record<string, string> = {
   CORPORATION: 'Corporation',
@@ -47,7 +49,11 @@ export default function EntityPage() {
   const [relationships, setRelationships] = useState<RelationshipWithEntities[]>([]);
   const [loadingRelationships, setLoadingRelationships] = useState(false);
   const [ownershipTree, setOwnershipTree] = useState<OwnershipTreeResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<'cards' | 'relationships'>('cards');
+  const [activeTab, setActiveTab] = useState<'summary' | 'cards' | 'relationships'>('summary');
+
+  // Summary state
+  const [summary, setSummary] = useState<EntitySummary | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
   useEffect(() => {
     if (entityId) {
@@ -55,6 +61,7 @@ export default function EntityPage() {
       loadCards();
       loadRelationships();
       loadOwnershipTree();
+      loadSummary();
     }
   }, [entityId]);
 
@@ -88,6 +95,18 @@ export default function EntityPage() {
       setOwnershipTree(tree);
     } catch (err) {
       console.error('Failed to load ownership tree:', err);
+    }
+  }
+
+  async function loadSummary() {
+    try {
+      setLoadingSummary(true);
+      const data = await api.getEntitySummary(entityId!);
+      setSummary(data);
+    } catch (err) {
+      console.error('Failed to load summary:', err);
+    } finally {
+      setLoadingSummary(false);
     }
   }
 
@@ -213,6 +232,16 @@ export default function EntityPage() {
       <div className="border-b border-gray-200 mb-6">
         <nav className="flex space-x-8">
           <button
+            onClick={() => setActiveTab('summary')}
+            className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'summary'
+                ? 'border-primary-600 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Summary
+          </button>
+          <button
             onClick={() => setActiveTab('cards')}
             className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
               activeTab === 'cards'
@@ -234,6 +263,23 @@ export default function EntityPage() {
           </button>
         </nav>
       </div>
+
+      {/* Summary Tab */}
+      {activeTab === 'summary' && (
+        <>
+          {loadingSummary ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+          ) : summary ? (
+            <EntitySummarySection summary={summary} />
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500">Unable to load summary.</p>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Cards Tab */}
       {activeTab === 'cards' && (

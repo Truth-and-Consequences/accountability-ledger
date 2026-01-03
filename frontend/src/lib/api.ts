@@ -25,6 +25,8 @@ import type {
   RelationshipStatus,
   RelationshipType,
   OwnershipTreeResponse,
+  EntitySummary,
+  ClaimType,
 } from '@ledger/shared';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
@@ -96,6 +98,24 @@ class ApiClient {
     if (params?.cursor) searchParams.set('cursor', params.cursor);
     const qs = searchParams.toString();
     return this.request(`/entities/${entityId}/cards${qs ? `?${qs}` : ''}`);
+  }
+
+  async getEntitySummary(
+    entityId: string,
+    params?: {
+      claimTypes?: ClaimType[];
+      dateFrom?: string;
+      dateTo?: string;
+    }
+  ): Promise<EntitySummary> {
+    const searchParams = new URLSearchParams();
+    if (params?.claimTypes?.length) {
+      searchParams.set('claimTypes', params.claimTypes.join(','));
+    }
+    if (params?.dateFrom) searchParams.set('dateFrom', params.dateFrom);
+    if (params?.dateTo) searchParams.set('dateTo', params.dateTo);
+    const qs = searchParams.toString();
+    return this.request(`/entities/${entityId}/summary${qs ? `?${qs}` : ''}`);
   }
 
   // Cards

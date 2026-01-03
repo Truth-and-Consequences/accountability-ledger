@@ -5,6 +5,10 @@ import {
   EntityType,
   DocType,
   EvidenceStrength,
+  ClaimStance,
+  ClaimType,
+  MonetaryAmountType,
+  AffectedCountUnit,
 } from '@ledger/shared';
 
 // Common validators
@@ -61,6 +65,40 @@ export const scoreSignalsSchema = z.object({
   accountability: z.number().min(0).max(5),
 });
 
+// Claim metadata enum value arrays
+const claimStanceValues = Object.values(ClaimStance) as [string, ...string[]];
+const claimTypeValues = Object.values(ClaimType) as [string, ...string[]];
+const monetaryAmountTypeValues = Object.values(MonetaryAmountType) as [string, ...string[]];
+const affectedCountUnitValues = Object.values(AffectedCountUnit) as [string, ...string[]];
+
+// Source reference schema (detailed page/section pointers)
+export const sourceReferenceSchema = z.object({
+  sourceId: idSchema,
+  pageNumber: z.number().int().min(1).optional(),
+  pageRange: z.object({
+    start: z.number().int().min(1),
+    end: z.number().int().min(1),
+  }).optional(),
+  section: z.string().max(200).optional(),
+  paragraph: z.number().int().min(1).optional(),
+  quote: z.string().max(500).optional(),
+  notes: z.string().max(500).optional(),
+});
+
+// Monetary amount schema (value stored in cents)
+export const monetaryAmountSchema = z.object({
+  value: z.number().int().min(0),  // cents
+  currency: z.string().length(3),   // ISO 4217 code
+  type: z.enum(monetaryAmountTypeValues),
+});
+
+// Affected count schema
+export const affectedCountSchema = z.object({
+  count: z.number().int().min(0),
+  unit: z.enum(affectedCountUnitValues),
+  isEstimate: z.boolean().optional(),
+});
+
 // Card schemas
 export const createCardSchema = z.object({
   title: z.string().min(1).max(500),
@@ -75,6 +113,13 @@ export const createCardSchema = z.object({
   counterpoint: z.string().max(5000).optional(),
   tags: z.array(z.string().max(100)).max(20).optional().default([]),
   scoreSignals: scoreSignalsSchema.optional(),
+  // Claim metadata (optional for backwards compatibility)
+  claimStance: z.enum(claimStanceValues).optional(),
+  claimType: z.enum(claimTypeValues).optional(),
+  sourceReferences: z.array(sourceReferenceSchema).max(50).optional(),
+  monetaryAmount: monetaryAmountSchema.optional(),
+  affectedCount: affectedCountSchema.optional(),
+  relatedCardIds: z.array(idSchema).max(20).optional(),
 });
 
 export const updateCardSchema = createCardSchema.partial();
@@ -184,6 +229,16 @@ export const addAliasSchema = z.object({
   alias: z.string().min(1).max(500),
 });
 
+// Entity summary query schema
+export const entitySummaryQuerySchema = z.object({
+  claimTypes: z.preprocess(
+    (val) => (typeof val === 'string' ? val.split(',') : val),
+    z.array(z.enum(claimTypeValues)).optional()
+  ),
+  dateFrom: isoDateSchema.optional(),
+  dateTo: isoDateSchema.optional(),
+});
+
 // Export types
 export type CreateEntityInput = z.infer<typeof createEntitySchema>;
 export type UpdateEntityInput = z.infer<typeof updateEntitySchema>;
@@ -206,3 +261,7 @@ export type RetractRelationshipInput = z.infer<typeof retractRelationshipSchema>
 export type RelationshipQueryInput = z.infer<typeof relationshipQuerySchema>;
 export type OwnershipTreeQueryInput = z.infer<typeof ownershipTreeQuerySchema>;
 export type AddAliasInput = z.infer<typeof addAliasSchema>;
+export type EntitySummaryQueryInput = z.infer<typeof entitySummaryQuerySchema>;
+export type SourceReferenceInput = z.infer<typeof sourceReferenceSchema>;
+export type MonetaryAmountInput = z.infer<typeof monetaryAmountSchema>;
+export type AffectedCountInput = z.infer<typeof affectedCountSchema>;

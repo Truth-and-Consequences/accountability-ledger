@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { CardCategory, EvidenceStrength, ScoreSignals } from '@ledger/shared';
+import type {
+  CardCategory,
+  EvidenceStrength,
+  ScoreSignals,
+  ClaimStance,
+  ClaimType,
+  MonetaryAmount,
+  AffectedCount,
+  MonetaryAmountType,
+  AffectedCountUnit,
+} from '@ledger/shared';
 import { api } from '../../lib/api';
 
 const categories: Array<{ value: CardCategory; label: string }> = [
@@ -19,6 +29,47 @@ const evidenceStrengths: Array<{ value: EvidenceStrength; label: string }> = [
   { value: 'HIGH', label: 'High' },
   { value: 'MEDIUM', label: 'Medium' },
   { value: 'LOW', label: 'Low' },
+];
+
+const claimStances: Array<{ value: ClaimStance; label: string }> = [
+  { value: 'AGENCY_ALLEGES', label: 'Agency Alleges' },
+  { value: 'COURT_HELD', label: 'Court Held' },
+  { value: 'COMPANY_DISCLOSED', label: 'Company Disclosed' },
+  { value: 'SETTLEMENT_TERMS', label: 'Settlement Terms' },
+  { value: 'WHISTLEBLOWER_ALLEGED', label: 'Whistleblower Alleged' },
+  { value: 'INSPECTOR_FOUND', label: 'Inspector Found' },
+  { value: 'MEDIA_REPORTED', label: 'Media Reported' },
+];
+
+const claimTypes: Array<{ value: ClaimType; label: string }> = [
+  { value: 'ENFORCEMENT_ACTION', label: 'Enforcement Action' },
+  { value: 'AUDIT_FINDING', label: 'Audit Finding' },
+  { value: 'DISCLOSURE', label: 'Disclosure' },
+  { value: 'SETTLEMENT', label: 'Settlement' },
+  { value: 'COURT_RULING', label: 'Court Ruling' },
+  { value: 'PENALTY', label: 'Penalty' },
+  { value: 'INJUNCTION', label: 'Injunction' },
+  { value: 'CONSENT_DECREE', label: 'Consent Decree' },
+  { value: 'RECALL', label: 'Recall' },
+  { value: 'WARNING_LETTER', label: 'Warning Letter' },
+  { value: 'INVESTIGATION', label: 'Investigation' },
+];
+
+const monetaryAmountTypes: Array<{ value: MonetaryAmountType; label: string }> = [
+  { value: 'PENALTY', label: 'Penalty' },
+  { value: 'SETTLEMENT', label: 'Settlement' },
+  { value: 'RESTITUTION', label: 'Restitution' },
+  { value: 'DISGORGEMENT', label: 'Disgorgement' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+const affectedCountUnits: Array<{ value: AffectedCountUnit; label: string }> = [
+  { value: 'INDIVIDUALS', label: 'Individuals' },
+  { value: 'ACCOUNTS', label: 'Accounts' },
+  { value: 'TRANSACTIONS', label: 'Transactions' },
+  { value: 'FACILITIES', label: 'Facilities' },
+  { value: 'PRODUCTS', label: 'Products' },
+  { value: 'OTHER', label: 'Other' },
 ];
 
 export default function AdminCardEditPage() {
@@ -51,6 +102,12 @@ export default function AdminCardEditPage() {
     accountability: 0,
   });
 
+  // Claim metadata
+  const [claimStance, setClaimStance] = useState<ClaimStance | ''>('');
+  const [claimType, setClaimType] = useState<ClaimType | ''>('');
+  const [monetaryAmount, setMonetaryAmount] = useState<MonetaryAmount | null>(null);
+  const [affectedCount, setAffectedCount] = useState<AffectedCount | null>(null);
+
   // Current card status (for edit mode)
   const [currentStatus, setCurrentStatus] = useState<string>('DRAFT');
 
@@ -80,6 +137,11 @@ export default function AdminCardEditPage() {
       if (card.scoreSignals) {
         setScoreSignals(card.scoreSignals);
       }
+      // Claim metadata
+      setClaimStance(card.claimStance || '');
+      setClaimType(card.claimType || '');
+      setMonetaryAmount(card.monetaryAmount || null);
+      setAffectedCount(card.affectedCount || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load card');
     } finally {
@@ -105,6 +167,11 @@ export default function AdminCardEditPage() {
         entityIds,
         sourceRefs,
         scoreSignals,
+        // Claim metadata (only include if set)
+        claimStance: claimStance || undefined,
+        claimType: claimType || undefined,
+        monetaryAmount: monetaryAmount || undefined,
+        affectedCount: affectedCount || undefined,
       };
 
       if (isNew) {
@@ -343,6 +410,185 @@ export default function AdminCardEditPage() {
             className="input"
             placeholder="tag1, tag2, tag3"
           />
+        </div>
+
+        {/* Claim Metadata Section */}
+        <div className="border-t border-gray-200 pt-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            Claim Metadata <span className="text-sm font-normal text-gray-500">(optional)</span>
+          </h3>
+
+          {/* Claim Stance & Type */}
+          <div className="grid gap-4 md:grid-cols-2 mb-4">
+            <div>
+              <label htmlFor="claimStance" className="label">
+                Claim Stance
+              </label>
+              <select
+                id="claimStance"
+                value={claimStance}
+                onChange={(e) => setClaimStance(e.target.value as ClaimStance | '')}
+                className="input"
+              >
+                <option value="">-- Select --</option>
+                {claimStances.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="claimType" className="label">
+                Claim Type
+              </label>
+              <select
+                id="claimType"
+                value={claimType}
+                onChange={(e) => setClaimType(e.target.value as ClaimType | '')}
+                className="input"
+              >
+                <option value="">-- Select --</option>
+                {claimTypes.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Monetary Amount */}
+          <div className="mb-4">
+            <label className="label">Monetary Amount</label>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <input
+                  type="number"
+                  placeholder="Amount in dollars"
+                  value={monetaryAmount ? monetaryAmount.value / 100 : ''}
+                  onChange={(e) => {
+                    const dollars = parseFloat(e.target.value);
+                    if (isNaN(dollars) || dollars === 0) {
+                      setMonetaryAmount(null);
+                    } else {
+                      setMonetaryAmount({
+                        value: Math.round(dollars * 100),
+                        currency: monetaryAmount?.currency || 'USD',
+                        type: monetaryAmount?.type || 'PENALTY',
+                      });
+                    }
+                  }}
+                  className="input"
+                />
+              </div>
+              <div>
+                <select
+                  value={monetaryAmount?.currency || 'USD'}
+                  onChange={(e) => {
+                    if (monetaryAmount) {
+                      setMonetaryAmount({ ...monetaryAmount, currency: e.target.value });
+                    }
+                  }}
+                  className="input"
+                  disabled={!monetaryAmount}
+                >
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="GBP">GBP</option>
+                </select>
+              </div>
+              <div>
+                <select
+                  value={monetaryAmount?.type || ''}
+                  onChange={(e) => {
+                    if (monetaryAmount) {
+                      setMonetaryAmount({
+                        ...monetaryAmount,
+                        type: e.target.value as MonetaryAmountType,
+                      });
+                    }
+                  }}
+                  className="input"
+                  disabled={!monetaryAmount}
+                >
+                  {monetaryAmountTypes.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Affected Count */}
+          <div className="mb-4">
+            <label className="label">Affected Count</label>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <input
+                  type="number"
+                  placeholder="Count"
+                  value={affectedCount?.count || ''}
+                  onChange={(e) => {
+                    const count = parseInt(e.target.value);
+                    if (isNaN(count) || count === 0) {
+                      setAffectedCount(null);
+                    } else {
+                      setAffectedCount({
+                        count,
+                        unit: affectedCount?.unit || 'INDIVIDUALS',
+                        isEstimate: affectedCount?.isEstimate || false,
+                      });
+                    }
+                  }}
+                  className="input"
+                />
+              </div>
+              <div>
+                <select
+                  value={affectedCount?.unit || ''}
+                  onChange={(e) => {
+                    if (affectedCount) {
+                      setAffectedCount({
+                        ...affectedCount,
+                        unit: e.target.value as AffectedCountUnit,
+                      });
+                    }
+                  }}
+                  className="input"
+                  disabled={!affectedCount}
+                >
+                  {affectedCountUnits.map((u) => (
+                    <option key={u.value} value={u.value}>
+                      {u.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isEstimate"
+                  checked={affectedCount?.isEstimate || false}
+                  onChange={(e) => {
+                    if (affectedCount) {
+                      setAffectedCount({
+                        ...affectedCount,
+                        isEstimate: e.target.checked,
+                      });
+                    }
+                  }}
+                  className="mr-2"
+                  disabled={!affectedCount}
+                />
+                <label htmlFor="isEstimate" className="text-sm text-gray-600">
+                  Is Estimate
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Score Signals */}

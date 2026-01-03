@@ -1,4 +1,12 @@
-import type { CardCategory, CardStatus, EvidenceStrength } from './enums';
+import type {
+  CardCategory,
+  CardStatus,
+  EvidenceStrength,
+  ClaimStance,
+  ClaimType,
+  MonetaryAmountType,
+  AffectedCountUnit,
+} from './enums';
 
 // Score signals for transparent scoring (0-5 each)
 export interface ScoreSignals {
@@ -8,6 +16,31 @@ export interface ScoreSignals {
   recidivism: number;    // repeat offense pattern
   deception: number;     // concealment / misleading statements
   accountability: number; // remediation quality
+}
+
+// Detailed source reference with page/section pointers
+export interface SourceReference {
+  sourceId: string;
+  pageNumber?: number;
+  pageRange?: { start: number; end: number };
+  section?: string;
+  paragraph?: number;
+  quote?: string;      // max 500 chars - exact quote from source
+  notes?: string;      // max 500 chars - analyst notes
+}
+
+// Monetary amount with cents precision (avoids floating point issues)
+export interface MonetaryAmount {
+  value: number;         // amount in cents
+  currency: string;      // ISO 4217 code (e.g., USD)
+  type: MonetaryAmountType;
+}
+
+// Count of affected entities (people, accounts, etc.)
+export interface AffectedCount {
+  count: number;
+  unit: AffectedCountUnit;
+  isEstimate?: boolean;
 }
 
 // Evidence Card - the atomic unit of the platform
@@ -27,6 +60,15 @@ export interface EvidenceCard {
   counterpoint?: string;            // company response / rebuttal
   tags: string[];
   scoreSignals?: ScoreSignals;
+
+  // Claim metadata (optional, for enhanced claims)
+  claimStance?: ClaimStance;
+  claimType?: ClaimType;
+  sourceReferences?: SourceReference[];
+  monetaryAmount?: MonetaryAmount;
+  affectedCount?: AffectedCount;
+  relatedCardIds?: string[];
+
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -53,6 +95,13 @@ export interface CreateCardRequest {
   counterpoint?: string;
   tags?: string[];
   scoreSignals?: ScoreSignals;
+  // Claim metadata
+  claimStance?: ClaimStance;
+  claimType?: ClaimType;
+  sourceReferences?: SourceReference[];
+  monetaryAmount?: MonetaryAmount;
+  affectedCount?: AffectedCount;
+  relatedCardIds?: string[];
 }
 
 export interface UpdateCardRequest {
@@ -68,6 +117,13 @@ export interface UpdateCardRequest {
   counterpoint?: string;
   tags?: string[];
   scoreSignals?: ScoreSignals;
+  // Claim metadata
+  claimStance?: ClaimStance;
+  claimType?: ClaimType;
+  sourceReferences?: SourceReference[];
+  monetaryAmount?: MonetaryAmount;
+  affectedCount?: AffectedCount;
+  relatedCardIds?: string[];
 }
 
 // Transition requests

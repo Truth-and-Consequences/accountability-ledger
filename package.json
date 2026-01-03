@@ -1,6 +1,6 @@
 {
   "name": "accountability-ledger",
-  "version": "0.1.0",
+  "version": "0.0.17",
   "private": true,
   "type": "module",
   "description": "Public accountability ledger platform for tracking corporate/government misconduct with verifiable evidence",
@@ -15,7 +15,10 @@
     "lint": "eslint .",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "clean": "npm run clean --workspaces --if-present"
+    "clean": "npm run clean --workspaces --if-present",
+    "release:patch": "bash scripts/bump-version.sh patch",
+    "release:minor": "bash scripts/bump-version.sh minor",
+    "release:major": "bash scripts/bump-version.sh major"
   },
   "devDependencies": {
     "@eslint/js": "9.39.2",

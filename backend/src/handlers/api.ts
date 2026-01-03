@@ -17,6 +17,7 @@ import * as cardService from '../lib/services/cards.js';
 import * as auditService from '../lib/services/audit.js';
 import * as intakeService from '../lib/services/intake.js';
 import * as relationshipService from '../lib/services/relationships.js';
+import * as summaryService from '../lib/services/summary.js';
 
 // Validation schemas
 import {
@@ -40,6 +41,7 @@ import {
   relationshipQuerySchema,
   ownershipTreeQuerySchema,
   addAliasSchema,
+  entitySummaryQuerySchema,
 } from '../lib/validation.js';
 
 // Route handler type
@@ -209,6 +211,14 @@ const routes: Record<string, Record<string, RouteHandler>> = {
       const publicQuery = { ...query, status: 'PUBLISHED' as const };
       const result = await cardService.listEntityCards(entityId, publicQuery);
       return jsonResponse(200, result);
+    },
+  },
+  'GET /entities/{entityId}/summary': {
+    handler: async (event, _ctx) => {
+      const entityId = getPathParam(event, 'entityId');
+      const query = entitySummaryQuerySchema.parse(getQueryParams(event));
+      const summary = await summaryService.getEntitySummary(entityId, query);
+      return jsonResponse(200, summary);
     },
   },
 

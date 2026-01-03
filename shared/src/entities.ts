@@ -1,4 +1,5 @@
-import type { EntityType, RelationshipType, RelationshipStatus } from './enums';
+import type { EntityType, RelationshipType, RelationshipStatus, ClaimType } from './enums';
+import type { EvidenceCard } from './cards';
 
 // Entity identifiers (public records only)
 export interface EntityIdentifiers {
@@ -152,4 +153,37 @@ export interface OwnershipNode {
 export interface OwnershipTreeResponse {
   root: OwnershipNode;
   maxDepthReached: boolean;
+}
+
+// Summary types for entity fact packs
+
+// A group of claims of the same type
+export interface ClaimGroup {
+  claimType: ClaimType;
+  claims: EvidenceCard[];
+  count: number;
+  totalMonetaryValue?: number;  // in cents
+}
+
+// Entity summary - aggregated claims and narrative
+export interface EntitySummary {
+  entityId: string;
+  entityName: string;
+  claimGroups: ClaimGroup[];
+  totalClaims: number;
+  totalMonetaryValue: number;   // in cents
+  dateRange: {
+    earliest: string;  // ISO date
+    latest: string;    // ISO date
+  };
+  categoryBreakdown: Record<string, number>;
+  narrativeSummary: string;
+  generatedAt: string;          // ISO timestamp
+}
+
+// Query params for entity summary endpoint
+export interface EntitySummaryQueryParams {
+  claimTypes?: ClaimType[];
+  dateFrom?: string;
+  dateTo?: string;
 }

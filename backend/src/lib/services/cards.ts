@@ -142,7 +142,7 @@ export async function updateCard(
 
   const updated: EvidenceCard = {
     ...existing,
-    ...input,
+    ...(input as Partial<EvidenceCard>),
     version: newVersion,
     updatedAt: now,
     updatedBy: userId,
