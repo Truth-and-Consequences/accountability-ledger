@@ -1,4 +1,4 @@
-import type { EntityType } from './enums';
+import type { EntityType, RelationshipType, RelationshipStatus } from './enums';
 
 // Entity identifiers (public records only)
 export interface EntityIdentifiers {
@@ -54,13 +54,83 @@ export interface UpdateEntityRequest {
   identifiers?: EntityIdentifiers;
 }
 
-// Relationship between entities (optional MVP)
+// Relationship between entities
 export interface Relationship {
   relationshipId: string;
+
+  // The two entities in the relationship
   fromEntityId: string;
   toEntityId: string;
-  type: string;
-  sourceRefs: string[];
+
+  // Relationship metadata
+  type: RelationshipType;
+  status: RelationshipStatus;
+
+  // Optional descriptive fields
+  description?: string;
+
+  // Date range for the relationship (if known)
+  startDate?: string;  // ISO date (YYYY-MM-DD)
+  endDate?: string;    // ISO date, null if ongoing
+
+  // Evidence linking
+  sourceRefs: string[];  // Source IDs that verify this relationship
+
+  // Ownership percentage (for OWNS/CONTROLS)
+  ownershipPercentage?: number;
+
+  // Retraction info
+  retractionReason?: string;
+  retractedAt?: string;
+  retractedBy?: string;
+
+  // Audit fields
   createdAt: string;
+  createdBy: string;
   updatedAt: string;
+  updatedBy?: string;
+  publishedAt?: string;
+  publishedBy?: string;
+}
+
+// API request/response types for relationships
+export interface CreateRelationshipRequest {
+  fromEntityId: string;
+  toEntityId: string;
+  type: RelationshipType;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  sourceRefs?: string[];
+  ownershipPercentage?: number;
+}
+
+export interface UpdateRelationshipRequest {
+  type?: RelationshipType;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  sourceRefs?: string[];
+  ownershipPercentage?: number;
+}
+
+export interface RelationshipWithEntities extends Relationship {
+  fromEntity: {
+    entityId: string;
+    name: string;
+    type: string;
+  };
+  toEntity: {
+    entityId: string;
+    name: string;
+    type: string;
+  };
+}
+
+export interface RelationshipQueryParams {
+  entityId?: string;
+  type?: RelationshipType;
+  status?: RelationshipStatus;
+  limit?: number;
+  cursor?: string;
 }

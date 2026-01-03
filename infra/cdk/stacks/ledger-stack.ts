@@ -278,6 +278,35 @@ export class LedgerStack extends cdk.Stack {
       sortKey: { name: 'GSI2SK', type: dynamodb.AttributeType.STRING },
     });
 
+    // Relationships table (entity-to-entity relationships)
+    // PK: REL#{relationshipId}, SK: META
+    // GSI1: ENTITY#{entityId}, GSI1SK: REL#{relationshipId} (query relationships by entity)
+    // GSI2: STATUS#{status}, GSI2SK: TS#{createdAt} (query by status)
+    const relationshipsTable = new dynamodb.Table(this, 'RelationshipsTable', {
+      tableName: `${prefix}-relationships`,
+      partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
+      removalPolicy: environment === 'prod'
+        ? cdk.RemovalPolicy.RETAIN
+        : cdk.RemovalPolicy.DESTROY,
+    });
+
+    // GSI1: Query relationships by entity (from or to)
+    relationshipsTable.addGlobalSecondaryIndex({
+      indexName: 'GSI1',
+      partitionKey: { name: 'GSI1PK', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'GSI1SK', type: dynamodb.AttributeType.STRING },
+    });
+
+    // GSI2: Query by status
+    relationshipsTable.addGlobalSecondaryIndex({
+      indexName: 'GSI2',
+      partitionKey: { name: 'GSI2PK', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'GSI2SK', type: dynamodb.AttributeType.STRING },
+    });
+
     // ============================================================
     // Cognito User Pool
     // ============================================================
@@ -366,6 +395,7 @@ export class LedgerStack extends cdk.Stack {
         AUDIT_TABLE: auditTable.tableName,
         IDEMPOTENCY_TABLE: idempotencyTable.tableName,
         INTAKE_TABLE: intakeTable.tableName,
+        RELATIONSHIPS_TABLE: relationshipsTable.tableName,
         SOURCES_BUCKET: sourcesBucket.bucketName,
         KMS_SIGNING_KEY_ID: signingKey.keyId,
         LOG_LEVEL: environment === 'prod' ? 'info' : 'debug',
@@ -380,6 +410,7 @@ export class LedgerStack extends cdk.Stack {
     auditTable.grantReadWriteData(apiFunction);
     idempotencyTable.grantReadWriteData(apiFunction);
     intakeTable.grantReadWriteData(apiFunction);
+    relationshipsTable.grantReadWriteData(apiFunction);
     sourcesBucket.grantReadWrite(apiFunction);
     signingKey.grant(apiFunction, 'kms:Sign', 'kms:GetPublicKey');
     readOnlyParam.grantRead(apiFunction);

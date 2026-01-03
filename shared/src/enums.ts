@@ -61,8 +61,14 @@ export type EvidenceStrength = (typeof EvidenceStrength)[keyof typeof EvidenceSt
 
 // Relationship types between entities
 export const RelationshipType = {
-  PARENT_OF: 'PARENT_OF',
+  OWNS: 'OWNS',
+  CONTROLS: 'CONTROLS',
   SUBSIDIARY_OF: 'SUBSIDIARY_OF',
+  ACQUIRED: 'ACQUIRED',
+  DIVESTED: 'DIVESTED',
+  JV_PARTNER: 'JV_PARTNER',
+  AFFILIATED: 'AFFILIATED',
+  PARENT_OF: 'PARENT_OF',
   CONTRACTOR_TO: 'CONTRACTOR_TO',
   REGULATED_BY: 'REGULATED_BY',
   BOARD_INTERLOCK: 'BOARD_INTERLOCK',
@@ -70,6 +76,14 @@ export const RelationshipType = {
   OTHER: 'OTHER',
 } as const;
 export type RelationshipType = (typeof RelationshipType)[keyof typeof RelationshipType];
+
+// Relationship status
+export const RelationshipStatus = {
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  RETRACTED: 'RETRACTED',
+} as const;
+export type RelationshipStatus = (typeof RelationshipStatus)[keyof typeof RelationshipStatus];
 
 // Audit log action types
 export const AuditAction = {

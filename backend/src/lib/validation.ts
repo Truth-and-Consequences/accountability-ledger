@@ -136,6 +136,45 @@ export const intakePromoteSchema = z.object({
   { message: 'Either entityId or createEntity must be provided' }
 );
 
+// Relationship schemas
+// Use Object.values to get the actual values from the const objects
+const relationshipTypeValues = [
+  'OWNS', 'CONTROLS', 'SUBSIDIARY_OF', 'ACQUIRED', 'DIVESTED', 'JV_PARTNER', 'AFFILIATED',
+  'PARENT_OF', 'CONTRACTOR_TO', 'REGULATED_BY', 'BOARD_INTERLOCK', 'LOBBIED_BY', 'OTHER'
+] as const;
+
+const relationshipStatusValues = ['DRAFT', 'PUBLISHED', 'RETRACTED'] as const;
+
+export const createRelationshipSchema = z.object({
+  fromEntityId: idSchema,
+  toEntityId: idSchema,
+  type: z.enum(relationshipTypeValues),
+  description: z.string().max(2000).optional(),
+  startDate: isoDateSchema.optional(),
+  endDate: isoDateSchema.optional(),
+  sourceRefs: z.array(idSchema).max(50).optional().default([]),
+  ownershipPercentage: z.number().min(0).max(100).optional(),
+});
+
+export const updateRelationshipSchema = z.object({
+  type: z.enum(relationshipTypeValues).optional(),
+  description: z.string().max(2000).optional(),
+  startDate: isoDateSchema.optional(),
+  endDate: isoDateSchema.optional(),
+  sourceRefs: z.array(idSchema).max(50).optional(),
+  ownershipPercentage: z.number().min(0).max(100).optional(),
+});
+
+export const retractRelationshipSchema = z.object({
+  reason: z.string().min(1).max(5000),
+});
+
+export const relationshipQuerySchema = paginationSchema.extend({
+  entityId: idSchema.optional(),
+  type: z.enum(relationshipTypeValues).optional(),
+  status: z.enum(relationshipStatusValues).optional(),
+});
+
 // Export types
 export type CreateEntityInput = z.infer<typeof createEntitySchema>;
 export type UpdateEntityInput = z.infer<typeof updateEntitySchema>;
@@ -152,3 +191,7 @@ export type EntityCardsQueryInput = z.infer<typeof entityCardsQuerySchema>;
 export type AuditQueryInput = z.infer<typeof auditQuerySchema>;
 export type IntakeQueryInput = z.infer<typeof intakeQuerySchema>;
 export type IntakePromoteInput = z.infer<typeof intakePromoteSchema>;
+export type CreateRelationshipInput = z.infer<typeof createRelationshipSchema>;
+export type UpdateRelationshipInput = z.infer<typeof updateRelationshipSchema>;
+export type RetractRelationshipInput = z.infer<typeof retractRelationshipSchema>;
+export type RelationshipQueryInput = z.infer<typeof relationshipQuerySchema>;

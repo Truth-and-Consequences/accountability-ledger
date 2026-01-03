@@ -12,6 +12,7 @@ export const config = {
     idempotency: process.env.IDEMPOTENCY_TABLE || 'LedgerIdempotency',
     tagIndex: process.env.TAG_INDEX_TABLE || 'LedgerTagIndex',
     intake: process.env.INTAKE_TABLE || 'LedgerIntake',
+    relationships: process.env.RELATIONSHIPS_TABLE || 'LedgerRelationships',
   },
 
   // S3 Buckets
