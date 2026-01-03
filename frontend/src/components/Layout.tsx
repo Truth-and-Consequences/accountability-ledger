@@ -20,6 +20,7 @@ export default function Layout({ isAdmin = false }: LayoutProps) {
     { path: '/admin/cards/new', label: 'New Card' },
     { path: '/admin/sources/new', label: 'New Source' },
     { path: '/admin/review-queue', label: 'Review Queue' },
+    { path: '/admin/relationships', label: 'Relationships' },
   ];
 
   const navItems = isAdmin ? adminNavItems : publicNavItems;

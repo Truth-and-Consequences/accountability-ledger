@@ -18,6 +18,13 @@ import type {
   IntakeStatus,
   IntakePromoteRequest,
   IntakePromoteResponse,
+  Relationship,
+  RelationshipWithEntities,
+  CreateRelationshipRequest,
+  UpdateRelationshipRequest,
+  RelationshipStatus,
+  RelationshipType,
+  OwnershipTreeResponse,
 } from '@ledger/shared';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
@@ -294,6 +301,108 @@ class ApiClient {
     return this.request(`/admin/intake/${intakeId}/promote`, {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  // Admin: Relationships
+  async listAdminRelationships(params?: {
+    entityId?: string;
+    type?: RelationshipType;
+    status?: RelationshipStatus;
+    limit?: number;
+    cursor?: string;
+  }): Promise<PaginatedResponse<RelationshipWithEntities>> {
+    const searchParams = new URLSearchParams();
+    if (params?.entityId) searchParams.set('entityId', params.entityId);
+    if (params?.type) searchParams.set('type', params.type);
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.cursor) searchParams.set('cursor', params.cursor);
+    const qs = searchParams.toString();
+    return this.request(`/admin/relationships${qs ? `?${qs}` : ''}`);
+  }
+
+  async getAdminRelationship(
+    relationshipId: string
+  ): Promise<RelationshipWithEntities> {
+    return this.request(`/admin/relationships/${relationshipId}`);
+  }
+
+  async createRelationship(
+    data: CreateRelationshipRequest
+  ): Promise<Relationship> {
+    return this.request('/admin/relationships', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateRelationship(
+    relationshipId: string,
+    data: UpdateRelationshipRequest
+  ): Promise<Relationship> {
+    return this.request(`/admin/relationships/${relationshipId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async publishRelationship(relationshipId: string): Promise<Relationship> {
+    return this.request(`/admin/relationships/${relationshipId}/publish`, {
+      method: 'POST',
+    });
+  }
+
+  async retractRelationship(
+    relationshipId: string,
+    reason: string
+  ): Promise<Relationship> {
+    return this.request(`/admin/relationships/${relationshipId}/retract`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  // Public: Relationships
+  async getEntityRelationships(
+    entityId: string,
+    params?: {
+      type?: RelationshipType;
+      limit?: number;
+      cursor?: string;
+    }
+  ): Promise<PaginatedResponse<RelationshipWithEntities>> {
+    const searchParams = new URLSearchParams();
+    if (params?.type) searchParams.set('type', params.type);
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.cursor) searchParams.set('cursor', params.cursor);
+    const qs = searchParams.toString();
+    return this.request(`/entities/${entityId}/relationships${qs ? `?${qs}` : ''}`);
+  }
+
+  async getRelationship(relationshipId: string): Promise<RelationshipWithEntities> {
+    return this.request(`/relationships/${relationshipId}`);
+  }
+
+  async getOwnershipTree(
+    entityId: string,
+    params?: {
+      direction?: 'up' | 'down' | 'both';
+      maxDepth?: number;
+    }
+  ): Promise<OwnershipTreeResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.direction) searchParams.set('direction', params.direction);
+    if (params?.maxDepth) searchParams.set('maxDepth', String(params.maxDepth));
+    const qs = searchParams.toString();
+    return this.request(`/entities/${entityId}/ownership-tree${qs ? `?${qs}` : ''}`);
+  }
+
+  // Admin: Entity aliases
+  async addEntityAlias(entityId: string, alias: string): Promise<Entity> {
+    return this.request(`/admin/entities/${entityId}/aliases`, {
+      method: 'POST',
+      body: JSON.stringify({ alias }),
     });
   }
 }

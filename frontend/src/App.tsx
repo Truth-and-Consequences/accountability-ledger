@@ -18,6 +18,7 @@ import AdminCardEditPage from './pages/admin/CardEditPage';
 import AdminSourceNewPage from './pages/admin/SourceNewPage';
 import AdminReviewQueuePage from './pages/admin/ReviewQueuePage';
 import AdminIntakeInboxPage from './pages/admin/IntakeInboxPage';
+import AdminRelationshipsPage from './pages/admin/RelationshipsPage';
 
 function App() {
   return (
@@ -53,6 +54,7 @@ function App() {
           <Route path="sources/new" element={<AdminSourceNewPage />} />
           <Route path="review-queue" element={<AdminReviewQueuePage />} />
           <Route path="intake" element={<AdminIntakeInboxPage />} />
+          <Route path="relationships" element={<AdminRelationshipsPage />} />
         </Route>
       </Routes>
     </AuthProvider>
