@@ -62,7 +62,7 @@ export default function CardPage() {
     try {
       const { downloadUrl } = await api.getSourceDownloadUrl(sourceId);
       window.open(downloadUrl, '_blank');
-    } catch (err) {
+    } catch {
       alert('Failed to get download URL');
     }
   }

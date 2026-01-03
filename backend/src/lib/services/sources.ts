@@ -196,7 +196,6 @@ export async function finalizeSource(
   const hash = createHash('sha256');
   const reader = stream.getReader();
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;

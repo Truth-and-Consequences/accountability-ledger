@@ -296,7 +296,7 @@ async function saveIntakeItem(item: IntakeItem): Promise<void> {
 export async function processFeed(
   feed: FeedConfig,
   rails: IntakeRails,
-  runId: string
+  _runId: string
 ): Promise<IntakeIngestResult> {
   const result: IntakeIngestResult = {
     feedId: feed.id,

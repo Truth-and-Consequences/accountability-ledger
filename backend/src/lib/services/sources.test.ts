@@ -5,9 +5,11 @@ import { SourceNotPublicError, NotFoundError } from '../errors.js';
 vi.mock('../dynamodb.js', () => ({
   getItem: vi.fn(),
   putItem: vi.fn(),
-  stripKeys: vi.fn((item) => {
-    const { PK, SK, ...rest } = item;
-    return rest;
+  stripKeys: vi.fn((item: Record<string, unknown>) => {
+    const result = { ...item };
+    delete result.PK;
+    delete result.SK;
+    return result;
   }),
 }));
 
