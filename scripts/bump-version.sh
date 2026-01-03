@@ -70,9 +70,26 @@ echo "Creating commit..."
 git add package.json
 git commit -m "chore: bump version to v$NEW_VERSION"
 
-# Create tag
+# Generate release notes from commits since last tag
+echo "Generating release notes..."
+LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+if [[ -n "$LAST_TAG" ]]; then
+  RELEASE_NOTES=$(git log "$LAST_TAG"..HEAD --pretty=format:"- %s" --no-merges)
+else
+  # No previous tag, get all commits
+  RELEASE_NOTES=$(git log --pretty=format:"- %s" --no-merges)
+fi
+
+# Create tag with release notes
 echo "Creating tag v$NEW_VERSION..."
-git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
+git tag -a "v$NEW_VERSION" -m "$(cat <<EOF
+Release v$NEW_VERSION
+
+## Changes
+
+$RELEASE_NOTES
+EOF
+)"
 
 # Push commit and tag
 echo "Pushing to remote..."
