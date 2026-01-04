@@ -15,6 +15,8 @@
     "lint": "eslint .",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "ci": "npm run check && npm run build",
     "clean": "npm run clean --workspaces --if-present",
     "release:patch": "bash scripts/bump-version.sh patch",
     "release:minor": "bash scripts/bump-version.sh minor",
