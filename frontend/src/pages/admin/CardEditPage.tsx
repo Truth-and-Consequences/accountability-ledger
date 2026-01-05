@@ -12,6 +12,7 @@ import type {
   AffectedCountUnit,
 } from '@ledger/shared';
 import { api } from '../../lib/api';
+import ErrorMessage from '../../components/ErrorMessage';
 
 const categories: Array<{ value: CardCategory; label: string }> = [
   { value: 'labor', label: 'Labor' },
@@ -79,7 +80,7 @@ export default function AdminCardEditPage() {
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   // Form state
   const [title, setTitle] = useState('');
@@ -143,7 +144,7 @@ export default function AdminCardEditPage() {
       setMonetaryAmount(card.monetaryAmount || null);
       setAffectedCount(card.affectedCount || null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load card');
+      setError(err instanceof Error ? err : new Error('Failed to load card'));
     } finally {
       setLoading(false);
     }
@@ -181,7 +182,7 @@ export default function AdminCardEditPage() {
         await api.updateCard(cardId!, data);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save card');
+      setError(err instanceof Error ? err : new Error('Failed to save card'));
     } finally {
       setSaving(false);
     }
@@ -193,7 +194,7 @@ export default function AdminCardEditPage() {
       await api.submitCard(cardId!);
       setCurrentStatus('REVIEW');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit card');
+      setError(err instanceof Error ? err : new Error('Failed to submit card'));
     } finally {
       setSaving(false);
     }
@@ -205,7 +206,7 @@ export default function AdminCardEditPage() {
       await api.publishCard(cardId!);
       setCurrentStatus('PUBLISHED');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to publish card');
+      setError(err instanceof Error ? err : new Error('Failed to publish card'));
     } finally {
       setSaving(false);
     }
@@ -232,11 +233,7 @@ export default function AdminCardEditPage() {
         )}
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-          <p className="text-red-800">{error}</p>
-        </div>
-      )}
+      <ErrorMessage error={error} onDismiss={() => setError(null)} />
 
       <div className="card p-6 space-y-6">
         {/* Title */}

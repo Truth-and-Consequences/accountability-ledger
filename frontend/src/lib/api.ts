@@ -31,6 +31,28 @@ import type {
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+/**
+ * Generate a UUID v4 for request correlation
+ */
+function generateRequestId(): string {
+  return crypto.randomUUID();
+}
+
+/**
+ * Custom error class that includes the request ID for support reference
+ */
+export class ApiRequestError extends Error {
+  public readonly requestId: string;
+  public readonly statusCode: number;
+
+  constructor(message: string, requestId: string, statusCode: number) {
+    super(message);
+    this.name = 'ApiRequestError';
+    this.requestId = requestId;
+    this.statusCode = statusCode;
+  }
+}
+
 class ApiClient {
   private token: string | null = null;
 
@@ -42,8 +64,11 @@ class ApiClient {
     path: string,
     options: RequestInit = {}
   ): Promise<T> {
+    const requestId = generateRequestId();
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'X-Request-Id': requestId,
       ...((options.headers as Record<string, string>) || {}),
     };
 
@@ -60,7 +85,11 @@ class ApiClient {
 
     if (!response.ok) {
       const error = data as ApiError;
-      throw new Error(error.error?.message || 'API request failed');
+      throw new ApiRequestError(
+        error.error?.message || 'An unexpected error occurred',
+        requestId,
+        response.status
+      );
     }
 
     return data as T;

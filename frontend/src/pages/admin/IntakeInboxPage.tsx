@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { IntakeItem, IntakeStatus, Entity } from '@ledger/shared';
 import { api } from '../../lib/api';
+import ErrorMessage, { formatErrorMessage } from '../../components/ErrorMessage';
 
 type StatusFilter = IntakeStatus | 'ALL';
 
@@ -14,7 +15,7 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
 export default function IntakeInboxPage() {
   const [items, setItems] = useState<IntakeItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [statusFilter, setStatusFilter] = useState<IntakeStatus>('NEW');
   const [selectedItem, setSelectedItem] = useState<IntakeItem | null>(null);
   const [promoting, setPromoting] = useState(false);
@@ -43,7 +44,7 @@ export default function IntakeInboxPage() {
       const result = await api.listIntake({ status: statusFilter, limit: 50 });
       setItems(result.items);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load intake items');
+      setError(err instanceof Error ? err : new Error('Failed to load intake items'));
     } finally {
       setLoading(false);
     }
@@ -65,7 +66,7 @@ export default function IntakeInboxPage() {
       await api.rejectIntake(item.intakeId);
       setItems((prev) => prev.filter((i) => i.intakeId !== item.intakeId));
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to reject');
+      alert(formatErrorMessage(err));
     }
   }
 
@@ -116,7 +117,7 @@ export default function IntakeInboxPage() {
       setPromoting(false);
       setSelectedItem(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to promote');
+      alert(formatErrorMessage(err));
     }
   }
 
@@ -156,11 +157,7 @@ export default function IntakeInboxPage() {
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-          <p className="text-red-800">{error}</p>
-        </div>
-      )}
+      <ErrorMessage error={error} onDismiss={() => setError(null)} />
 
       {items.length === 0 ? (
         <div className="card p-8 text-center">
