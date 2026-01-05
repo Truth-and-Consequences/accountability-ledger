@@ -25,7 +25,7 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
 
 /**
  * Generate a default summary template from intake item metadata.
- * Uses a deterministic template that the admin can edit before promoting.
+ * Prefers AI-extracted summary, falls back to RSS summary, then title.
  */
 function generateDefaultSummary(item: IntakeItem): string {
   const date = new Date(item.publishedAt).toLocaleDateString('en-US', {
@@ -34,8 +34,13 @@ function generateDefaultSummary(item: IntakeItem): string {
     day: 'numeric',
   });
 
-  // Start with the RSS summary if available, otherwise build from title
-  if (item.summary) {
+  // Prefer AI-extracted summary (from LLM extraction)
+  if (item.extractedSummary) {
+    return item.extractedSummary;
+  }
+
+  // Fall back to RSS summary if available
+  if (item.summary && item.summary !== item.title) {
     // Clean up common RSS cruft: excessive whitespace, [Continue reading...], etc.
     let cleaned = item.summary
       .replace(/\[Continue reading.*?\]/gi, '')

@@ -93,6 +93,7 @@ export interface IntakeItem {
   suggestedTags?: string[];
 
   // LLM extraction results
+  extractedSummary?: string;  // AI-generated summary (2-3 sentences)
   suggestedEntities?: SuggestedEntity[];
   suggestedRelationships?: SuggestedRelationship[];
   suggestedSources?: SuggestedSource[];

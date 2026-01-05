@@ -120,7 +120,7 @@ async function processItem(item: IntakeItem): Promise<void> {
     return;
   }
 
-  const { entities, relationships, sources } = await extractFromIntakeItem(item);
+  const { summary, entities, relationships, sources } = await extractFromIntakeItem(item);
 
   logger.info(
     {
@@ -129,11 +129,13 @@ async function processItem(item: IntakeItem): Promise<void> {
       relationshipCount: relationships.length,
       sourceCount: sources.length,
       matchedEntities: entities.filter((e) => e.matchedEntityId).length,
+      hasSummary: !!summary,
     },
     'Extraction completed for item'
   );
 
   await updateIntakeItem(item, {
+    extractedSummary: summary,
     suggestedEntities: entities,
     suggestedRelationships: relationships,
     suggestedSources: sources,

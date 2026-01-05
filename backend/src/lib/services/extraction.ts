@@ -54,6 +54,7 @@ const RELATIONSHIP_TYPES = [
 
 // Expected JSON response schema from LLM
 interface ExtractionResponse {
+  summary?: string;
   entities: Array<{
     name: string;
     type: string;
@@ -78,9 +79,10 @@ interface ExtractionResponse {
 }
 
 /**
- * Extract entities, relationships, and source links from an intake item using Claude.
+ * Extract entities, relationships, source links, and summary from an intake item using Claude.
  */
 export async function extractFromIntakeItem(item: IntakeItem): Promise<{
+  summary?: string;
   entities: SuggestedEntity[];
   relationships: SuggestedRelationship[];
   sources: SuggestedSource[];
@@ -117,6 +119,7 @@ export async function extractFromIntakeItem(item: IntakeItem): Promise<{
   const enrichedSources = buildSourceSuggestions(parsed.sources);
 
   return {
+    summary: parsed.summary,
     entities: enrichedEntities,
     relationships: enrichedRelationships,
     sources: enrichedSources,
@@ -348,12 +351,15 @@ function parseExtractionResponse(content: string): ExtractionResponse {
         evidence: s.evidence?.trim(),
       }));
 
+    // Extract summary (optional, 2-3 sentences)
+    const summary = parsed.summary?.trim() || undefined;
+
     logger.debug(
-      { entityCount: entities.length, relationshipCount: relationships.length, sourceCount: sources.length },
+      { entityCount: entities.length, relationshipCount: relationships.length, sourceCount: sources.length, hasSummary: !!summary },
       'Parsed extraction response'
     );
 
-    return { entities, relationships, sources };
+    return { summary, entities, relationships, sources };
   } catch (error) {
     logger.warn(
       { error: error instanceof Error ? error.message : 'Unknown', content: content.slice(0, 500) },
