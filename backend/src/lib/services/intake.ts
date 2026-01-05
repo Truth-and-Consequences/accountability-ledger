@@ -598,3 +598,36 @@ export async function markIntakePromoted(
 
   return updated;
 }
+
+/**
+ * Update an intake item with extraction results or other partial updates.
+ * Used by the LLM extraction pipeline to store suggested entities and relationships.
+ */
+export async function updateIntakeItem(
+  item: IntakeItem,
+  updates: Partial<IntakeItem>
+): Promise<IntakeItem> {
+  const updated: IntakeItem = {
+    ...item,
+    ...updates,
+  };
+
+  // Determine GSI1 partition key based on current status
+  const gsi1pk = `STATUS#${updated.status}`;
+  const gsi1sk = `TS#${updated.ingestedAt}`;
+
+  await putItem({
+    TableName: TABLE,
+    Item: {
+      PK: `FEED#${item.feedId}`,
+      SK: `TS#${item.publishedAt}#${item.intakeId}`,
+      GSI1PK: gsi1pk,
+      GSI1SK: gsi1sk,
+      GSI2PK: `DEDUPE#${item.dedupeKey}`,
+      GSI2SK: item.intakeId,
+      ...updated,
+    },
+  });
+
+  return updated;
+}

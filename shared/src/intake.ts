@@ -1,6 +1,73 @@
 // Intake types for automated RSS ingestion
 
+import type { EntityType, RelationshipType } from './enums.js';
+
 export type IntakeStatus = 'NEW' | 'REVIEWED' | 'PROMOTED' | 'REJECTED';
+
+// LLM extraction status
+export type ExtractionStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
+
+// Entity suggestion from LLM extraction
+export interface SuggestedEntity {
+  // Name as extracted from text
+  extractedName: string;
+
+  // Suggested type based on context
+  suggestedType: EntityType;
+
+  // Confidence score (0.0 - 1.0)
+  confidence: number;
+
+  // If matched to existing entity in database
+  matchedEntityId?: string;
+  matchedEntityName?: string;
+
+  // Evidence snippet from source text
+  evidenceSnippet?: string;
+}
+
+// Source/document link suggestion from LLM extraction
+export interface SuggestedSource {
+  // URL of the linked document
+  url: string;
+
+  // Title or description (from link text or context)
+  title: string;
+
+  // Type hint based on URL or context (PDF, court filing, press release, etc.)
+  sourceType?: string;
+
+  // Confidence score (0.0 - 1.0)
+  confidence: number;
+
+  // Evidence/context from the article
+  evidenceSnippet?: string;
+}
+
+// Relationship suggestion from LLM extraction
+export interface SuggestedRelationship {
+  // The two entities in the relationship
+  fromEntity: {
+    extractedName: string;
+    matchedEntityId?: string;
+    matchedEntityName?: string;
+  };
+  toEntity: {
+    extractedName: string;
+    matchedEntityId?: string;
+    matchedEntityName?: string;
+  };
+
+  // Relationship details
+  suggestedType: RelationshipType;
+  confidence: number;
+
+  // Evidence from source text
+  evidenceSnippet: string;
+
+  // Optional additional context
+  description?: string;
+}
 
 export interface IntakeItem {
   // Primary identifiers
@@ -22,9 +89,16 @@ export interface IntakeItem {
   // Processing status
   status: IntakeStatus;
 
-  // Suggestions (can be set by automation or human)
-  suggestedEntities?: string[];
+  // Tag suggestions (from feed defaults)
   suggestedTags?: string[];
+
+  // LLM extraction results
+  suggestedEntities?: SuggestedEntity[];
+  suggestedRelationships?: SuggestedRelationship[];
+  suggestedSources?: SuggestedSource[];
+  extractionStatus?: ExtractionStatus;
+  extractedAt?: string;
+  extractionError?: string;
 
   // Snapshot info (if captured)
   snapshot?: IntakeSnapshot;
@@ -99,6 +173,13 @@ export interface IntakePromoteRequest {
     name: string;
     type: string;
   }>;
+  // Relationship creation (from LLM suggestions)
+  createRelationships?: Array<{
+    fromEntityId: string;
+    toEntityId: string;
+    type: string;            // RelationshipType
+    description?: string;
+  }>;
   // Card metadata
   tags?: string[];
   cardSummary: string;
@@ -107,7 +188,8 @@ export interface IntakePromoteRequest {
 export interface IntakePromoteResponse {
   sourceId: string;
   cardId: string;
-  entityIds?: string[];      // All entity IDs linked to the card
+  entityIds?: string[];        // All entity IDs linked to the card
+  relationshipIds?: string[];  // All relationship IDs created (as DRAFT)
 }
 
 export interface IntakeIngestResult {

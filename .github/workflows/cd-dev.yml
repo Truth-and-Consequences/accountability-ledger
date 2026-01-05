@@ -45,6 +45,9 @@ jobs:
       - name: Deploy CDK Stack
         working-directory: infra/cdk
         run: npx cdk deploy LedgerDevStack --require-approval never
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EXTRACTION_PROMPT_BUCKET: ${{ secrets.EXTRACTION_PROMPT_BUCKET }}
 
       - name: Get Cognito Outputs
         id: cognito-outputs

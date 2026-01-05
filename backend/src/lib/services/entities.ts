@@ -15,8 +15,11 @@ import type { CreateEntityInput, UpdateEntityInput, EntityQueryInput } from '../
 
 const TABLE = config.tables.entities;
 
-// Normalize name for search index
-function normalizeName(name: string): string {
+/**
+ * Normalize name for search index and matching.
+ * Lowercases and removes all non-alphanumeric characters.
+ */
+export function normalizeName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 

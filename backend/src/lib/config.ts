@@ -39,6 +39,23 @@ export const config = {
     readOnly: process.env.LEDGER_READONLY === 'true',
   },
 
+  // Anthropic API (for LLM extraction)
+  anthropic: {
+    apiKey: process.env.ANTHROPIC_API_KEY || '',
+    model: process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307',
+  },
+
+  // LLM extraction settings
+  extraction: {
+    maxTokens: parseInt(process.env.EXTRACTION_MAX_TOKENS || '4096', 10),
+    minConfidence: parseFloat(process.env.EXTRACTION_MIN_CONFIDENCE || '0.5'),
+    maxItemsPerRun: parseInt(process.env.EXTRACTION_MAX_ITEMS || '50', 10),
+    retryAttempts: parseInt(process.env.EXTRACTION_RETRY_ATTEMPTS || '3', 10),
+    retryDelayMs: parseInt(process.env.EXTRACTION_RETRY_DELAY_MS || '1000', 10),
+    promptTemplateBucket: process.env.EXTRACTION_PROMPT_BUCKET || '',
+    promptTemplateKey: process.env.EXTRACTION_PROMPT_KEY || 'prompts/extraction-template.txt',
+  },
+
   // App version (set during build)
   version: process.env.APP_VERSION || '0.1.0',
 } as const;

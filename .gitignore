@@ -45,6 +45,7 @@ TODO.md
 *.key
 credentials.json
 secrets.json
+extraction-template.txt
 
 # Local config
 .claude/

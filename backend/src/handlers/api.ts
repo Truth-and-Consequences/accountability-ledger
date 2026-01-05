@@ -710,6 +710,31 @@ const routes: Record<string, Record<string, RouteHandler>> = {
         { requestId: ctx.requestId, metadata: { fromIntake: intakeId, entityCount: uniqueEntityIds.length } }
       );
 
+      // Create relationships from LLM suggestions (as DRAFT, linked to this source)
+      const relationshipIds: string[] = [];
+      if (input.createRelationships && input.createRelationships.length > 0) {
+        for (const rel of input.createRelationships) {
+          const relationship = await relationshipService.createRelationship(
+            {
+              fromEntityId: rel.fromEntityId,
+              toEntityId: rel.toEntityId,
+              type: rel.type,
+              sourceRefs: [source.sourceId],
+              description: rel.description,
+            },
+            ctx.userId!
+          );
+          relationshipIds.push(relationship.relationshipId);
+          await auditService.logAuditEvent(
+            'CREATE_RELATIONSHIP',
+            'relationship',
+            relationship.relationshipId,
+            ctx.userId!,
+            { requestId: ctx.requestId, metadata: { fromIntake: intakeId, sourceId: source.sourceId } }
+          );
+        }
+      }
+
       // Mark intake item as promoted
       await intakeService.markIntakePromoted(
         intakeItem.feedId,
@@ -724,13 +749,14 @@ const routes: Record<string, Record<string, RouteHandler>> = {
         'intake',
         intakeId,
         ctx.userId!,
-        { requestId: ctx.requestId, metadata: { sourceId: source.sourceId, cardId: card.cardId } }
+        { requestId: ctx.requestId, metadata: { sourceId: source.sourceId, cardId: card.cardId, relationshipCount: relationshipIds.length } }
       );
 
       return jsonResponse(201, {
         sourceId: source.sourceId,
         cardId: card.cardId,
         entityIds: uniqueEntityIds,
+        relationshipIds: relationshipIds.length > 0 ? relationshipIds : undefined,
       });
     },
   },

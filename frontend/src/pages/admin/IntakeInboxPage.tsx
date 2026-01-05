@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import type { IntakeItem, IntakeStatus, EntitySearchResult, EntityType } from '@ledger/shared';
+import type {
+  IntakeItem,
+  IntakeStatus,
+  EntitySearchResult,
+  EntityType,
+  SuggestedEntity,
+  SuggestedRelationship,
+  SuggestedSource,
+} from '@ledger/shared';
 import { api } from '../../lib/api';
 import ErrorMessage from '../../components/ErrorMessage';
 import { useToast } from '../../components/Toast';
@@ -70,6 +78,12 @@ export default function IntakeInboxPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createEntityName, setCreateEntityName] = useState('');
 
+  // LLM extraction suggestions state
+  const [unmatchedSuggestions, setUnmatchedSuggestions] = useState<SuggestedEntity[]>([]);
+  const [suggestedRelationships, setSuggestedRelationships] = useState<SuggestedRelationship[]>([]);
+  const [selectedRelationships, setSelectedRelationships] = useState<Set<number>>(new Set());
+  const [suggestedSources, setSuggestedSources] = useState<SuggestedSource[]>([]);
+
   useEffect(() => {
     loadItems();
   }, [statusFilter]);
@@ -101,7 +115,28 @@ export default function IntakeInboxPage() {
 
   function openPromoteModal(item: IntakeItem) {
     setSelectedItem(item);
-    setSelectedEntities([]);
+
+    // Pre-populate with matched entities from LLM extraction
+    const matchedEntities: EntitySearchResult[] = (item.suggestedEntities || [])
+      .filter((e) => e.matchedEntityId && e.matchedEntityName)
+      .map((e) => ({
+        entityId: e.matchedEntityId!,
+        name: e.matchedEntityName!,
+        type: e.suggestedType,
+      }));
+    setSelectedEntities(matchedEntities);
+
+    // Track unmatched suggestions for user to review
+    const unmatched = (item.suggestedEntities || []).filter((e) => !e.matchedEntityId);
+    setUnmatchedSuggestions(unmatched);
+
+    // Load relationship suggestions
+    setSuggestedRelationships(item.suggestedRelationships || []);
+    setSelectedRelationships(new Set()); // None selected by default
+
+    // Load source suggestions
+    setSuggestedSources(item.suggestedSources || []);
+
     setNewEntitiesToCreate([]);
     setCardSummary(generateDefaultSummary(item));
     setTags(item.suggestedTags?.join(', ') || '');
@@ -116,6 +151,40 @@ export default function IntakeInboxPage() {
   function handleEntityCreated(entity: EntitySearchResult) {
     setSelectedEntities((prev) => [...prev, entity]);
     setShowCreateModal(false);
+  }
+
+  function handleCreateFromSuggestion(suggestion: SuggestedEntity) {
+    // Open create modal with suggested name and type pre-filled
+    setCreateEntityName(suggestion.extractedName);
+    setShowCreateModal(true);
+    // Remove from unmatched list
+    setUnmatchedSuggestions((prev) =>
+      prev.filter((s) => s.extractedName !== suggestion.extractedName)
+    );
+  }
+
+  function handleDismissSuggestion(suggestion: SuggestedEntity) {
+    setUnmatchedSuggestions((prev) =>
+      prev.filter((s) => s.extractedName !== suggestion.extractedName)
+    );
+  }
+
+  function toggleRelationship(index: number) {
+    setSelectedRelationships((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  }
+
+  function getConfidenceColor(confidence: number): string {
+    if (confidence >= 0.9) return 'text-green-600';
+    if (confidence >= 0.7) return 'text-yellow-600';
+    return 'text-orange-600';
   }
 
   async function handlePromote() {
@@ -136,9 +205,22 @@ export default function IntakeInboxPage() {
     }
 
     try {
+      // Build relationship requests from selected suggestions
+      // Only include relationships where both entities are matched
+      const relationshipsToCreate = Array.from(selectedRelationships)
+        .map((idx) => suggestedRelationships[idx])
+        .filter((rel) => rel.fromEntity.matchedEntityId && rel.toEntity.matchedEntityId)
+        .map((rel) => ({
+          fromEntityId: rel.fromEntity.matchedEntityId!,
+          toEntityId: rel.toEntity.matchedEntityId!,
+          type: rel.suggestedType,
+          description: rel.description,
+        }));
+
       await api.promoteIntake(selectedItem.intakeId, {
         entityIds: selectedEntities.map((e) => e.entityId),
         createEntities: newEntitiesToCreate.length > 0 ? newEntitiesToCreate : undefined,
+        createRelationships: relationshipsToCreate.length > 0 ? relationshipsToCreate : undefined,
         cardSummary,
         tags: tagList,
       });
@@ -214,6 +296,18 @@ export default function IntakeInboxPage() {
                         }`}
                       >
                         {item.status}
+                      </span>
+                    )}
+                    {item.extractionStatus === 'COMPLETED' && (
+                      <span className="badge bg-purple-100 text-purple-800" title="LLM extraction completed">
+                        {(item.suggestedEntities?.length || 0)} entities,{' '}
+                        {(item.suggestedRelationships?.length || 0)} relationships,{' '}
+                        {(item.suggestedSources?.length || 0)} sources
+                      </span>
+                    )}
+                    {item.extractionStatus === 'FAILED' && (
+                      <span className="badge bg-red-100 text-red-800" title={item.extractionError}>
+                        Extraction failed
                       </span>
                     )}
                   </div>
@@ -310,6 +404,174 @@ export default function IntakeInboxPage() {
                   placeholder="Search entities..."
                 />
               </div>
+
+              {/* Unmatched Entity Suggestions from LLM */}
+              {unmatchedSuggestions.length > 0 && (
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <label className="block text-sm font-medium text-amber-800 mb-2">
+                    Suggested Entities (not in database)
+                  </label>
+                  <div className="space-y-2">
+                    {unmatchedSuggestions.map((suggestion, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between bg-white p-2 rounded border border-amber-100"
+                      >
+                        <div className="flex-1">
+                          <span className="font-medium text-gray-900">
+                            {suggestion.extractedName}
+                          </span>
+                          <span className="ml-2 text-xs text-gray-500">
+                            ({suggestion.suggestedType})
+                          </span>
+                          <span className={`ml-2 text-xs ${getConfidenceColor(suggestion.confidence)}`}>
+                            {Math.round(suggestion.confidence * 100)}% confidence
+                          </span>
+                          {suggestion.evidenceSnippet && (
+                            <p className="text-xs text-gray-500 mt-1 italic truncate">
+                              "{suggestion.evidenceSnippet}"
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2 ml-2">
+                          <button
+                            onClick={() => handleCreateFromSuggestion(suggestion)}
+                            className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
+                          >
+                            Create
+                          </button>
+                          <button
+                            onClick={() => handleDismissSuggestion(suggestion)}
+                            className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Relationship Suggestions from LLM */}
+              {suggestedRelationships.length > 0 && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <label className="block text-sm font-medium text-blue-800 mb-2">
+                    Suggested Relationships
+                  </label>
+                  <p className="text-xs text-blue-600 mb-2">
+                    Select relationships to create (only those with matched entities can be created)
+                  </p>
+                  <div className="space-y-2">
+                    {suggestedRelationships.map((rel, idx) => {
+                      const canCreate = rel.fromEntity.matchedEntityId && rel.toEntity.matchedEntityId;
+                      const isSelected = selectedRelationships.has(idx);
+                      return (
+                        <div
+                          key={idx}
+                          className={`flex items-start gap-3 p-2 rounded border ${
+                            canCreate
+                              ? isSelected
+                                ? 'bg-blue-100 border-blue-300'
+                                : 'bg-white border-blue-100 hover:bg-blue-50 cursor-pointer'
+                              : 'bg-gray-50 border-gray-200 opacity-60'
+                          }`}
+                          onClick={() => canCreate && toggleRelationship(idx)}
+                        >
+                          {canCreate && (
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleRelationship(idx)}
+                              className="mt-1"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <div className="text-sm">
+                              <span className="font-medium">
+                                {rel.fromEntity.matchedEntityName || rel.fromEntity.extractedName}
+                              </span>
+                              <span className="mx-2 text-gray-500">→</span>
+                              <span className="text-xs px-1.5 py-0.5 bg-gray-200 rounded">
+                                {rel.suggestedType}
+                              </span>
+                              <span className="mx-2 text-gray-500">→</span>
+                              <span className="font-medium">
+                                {rel.toEntity.matchedEntityName || rel.toEntity.extractedName}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={`text-xs ${getConfidenceColor(rel.confidence)}`}>
+                                {Math.round(rel.confidence * 100)}% confidence
+                              </span>
+                              {!canCreate && (
+                                <span className="text-xs text-red-500">
+                                  (entities not matched)
+                                </span>
+                              )}
+                            </div>
+                            {rel.evidenceSnippet && (
+                              <p className="text-xs text-gray-500 mt-1 italic line-clamp-2">
+                                "{rel.evidenceSnippet}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Suggested Sources from LLM */}
+              {suggestedSources.length > 0 && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <label className="block text-sm font-medium text-green-800 mb-2">
+                    Suggested Source Documents
+                  </label>
+                  <p className="text-xs text-green-600 mb-2">
+                    Links to primary documents extracted from the article (for reference only)
+                  </p>
+                  <div className="space-y-2">
+                    {suggestedSources.map((source, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-start gap-3 p-2 rounded border bg-white border-green-100"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={source.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-medium text-primary-600 hover:underline truncate"
+                              title={source.url}
+                            >
+                              {source.title}
+                            </a>
+                            {source.sourceType && (
+                              <span className="text-xs px-1.5 py-0.5 bg-gray-200 rounded flex-shrink-0">
+                                {source.sourceType}
+                              </span>
+                            )}
+                            <span className={`text-xs flex-shrink-0 ${getConfidenceColor(source.confidence)}`}>
+                              {Math.round(source.confidence * 100)}%
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 truncate mt-0.5" title={source.url}>
+                            {source.url}
+                          </p>
+                          {source.evidenceSnippet && (
+                            <p className="text-xs text-gray-500 mt-1 italic line-clamp-1">
+                              "{source.evidenceSnippet}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Card Summary */}
               <div className="mb-4">

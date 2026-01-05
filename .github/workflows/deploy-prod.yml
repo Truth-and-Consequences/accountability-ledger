@@ -129,12 +129,16 @@ jobs:
         run: npx cdk diff LedgerProdStack
         env:
           DOMAIN_NAME: ${{ env.DOMAIN_NAME }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EXTRACTION_PROMPT_BUCKET: ${{ secrets.EXTRACTION_PROMPT_BUCKET }}
 
       - name: CDK Deploy
         working-directory: infra/cdk
         run: npx cdk deploy LedgerProdStack --require-approval never
         env:
           DOMAIN_NAME: ${{ env.DOMAIN_NAME }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EXTRACTION_PROMPT_BUCKET: ${{ secrets.EXTRACTION_PROMPT_BUCKET }}
 
       - name: Get CloudFront Distribution ID
         id: cloudfront

@@ -466,6 +466,72 @@ export class LedgerStack extends cdk.Stack {
     );
 
     // ============================================================
+    // Intake Extract Lambda (LLM-based entity/relationship extraction)
+    // ============================================================
+    const extractLogGroup = logs.LogGroup.fromLogGroupName(
+      this,
+      'ExtractLogGroup',
+      `/aws/lambda/${prefix}-intake-extract`
+    );
+
+    // Prompt template bucket - can be overridden via environment variable (GitHub secret)
+    // Falls back to sources bucket if not specified
+    const extractionPromptBucket = process.env.EXTRACTION_PROMPT_BUCKET || sourcesBucket.bucketName;
+    const extractionPromptKey = process.env.EXTRACTION_PROMPT_KEY || 'prompts/extraction-template.txt';
+
+    const intakeExtractFunction = new lambda.Function(this, 'IntakeExtractFunction', {
+      functionName: `${prefix}-intake-extract`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'handlers/intake-extract.handler',
+      code: lambda.Code.fromAsset('../../backend/dist'),
+      memorySize: 1024, // Higher memory for LLM processing
+      timeout: cdk.Duration.minutes(10), // Longer timeout for batch processing
+      logGroup: extractLogGroup,
+      environment: {
+        NODE_ENV: environment,
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
+        INTAKE_TABLE: intakeTable.tableName,
+        ENTITIES_TABLE: entitiesTable.tableName,
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '', // Set via GitHub secret
+        ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307',
+        EXTRACTION_MAX_TOKENS: '4096',
+        EXTRACTION_MIN_CONFIDENCE: '0.5',
+        EXTRACTION_MAX_ITEMS: '50',
+        // Prompt template stored in S3 (not in public repo) - configured via GitHub secrets
+        EXTRACTION_PROMPT_BUCKET: extractionPromptBucket,
+        EXTRACTION_PROMPT_KEY: extractionPromptKey,
+        LOG_LEVEL: environment === 'prod' ? 'info' : 'debug',
+      },
+    });
+
+    // Grant permissions to extraction function
+    intakeTable.grantReadWriteData(intakeExtractFunction);
+    entitiesTable.grantReadData(intakeExtractFunction);
+
+    // Grant read access to the prompt bucket
+    // If using sources bucket, grant read; if external bucket, it needs cross-account permissions set up separately
+    if (extractionPromptBucket === sourcesBucket.bucketName) {
+      sourcesBucket.grantRead(intakeExtractFunction);
+    } else {
+      // For external buckets, grant read via IAM policy (bucket must allow this role)
+      const externalBucket = s3.Bucket.fromBucketName(this, 'ExternalPromptBucket', extractionPromptBucket);
+      externalBucket.grantRead(intakeExtractFunction);
+    }
+
+    // Schedule: Run 30 minutes after ingestion (6:30 AM UTC)
+    const extractScheduleRule = new events.Rule(this, 'ExtractScheduleRule', {
+      ruleName: `${prefix}-extract-schedule`,
+      schedule: events.Schedule.cron({ minute: '30', hour: '6' }),
+      description: 'LLM-based entity and relationship extraction for intake items',
+    });
+
+    extractScheduleRule.addTarget(
+      new eventsTargets.LambdaFunction(intakeExtractFunction, {
+        retryAttempts: 2,
+      })
+    );
+
+    // ============================================================
     // API Gateway
     // ============================================================
     const httpApi = new apigateway.HttpApi(this, 'HttpApi', {

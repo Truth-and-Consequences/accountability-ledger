@@ -9,6 +9,7 @@ import {
   ClaimType,
   MonetaryAmountType,
   AffectedCountUnit,
+  RelationshipType,
 } from '@ledger/shared';
 
 // Common validators
@@ -174,6 +175,14 @@ const createEntityInlineSchema = z.object({
   type: z.nativeEnum(EntityType),
 });
 
+// Schema for creating a relationship inline during promote
+const createRelationshipInlineSchema = z.object({
+  fromEntityId: idSchema,
+  toEntityId: idSchema,
+  type: z.nativeEnum(RelationshipType),
+  description: z.string().max(2000).optional(),
+});
+
 export const intakePromoteSchema = z.object({
   // Legacy single entity (backwards compat)
   entityId: idSchema.optional(),
@@ -181,6 +190,8 @@ export const intakePromoteSchema = z.object({
   // Multi-entity support
   entityIds: z.array(idSchema).max(10).optional(),
   createEntities: z.array(createEntityInlineSchema).max(5).optional(),
+  // Relationship creation (from LLM suggestions)
+  createRelationships: z.array(createRelationshipInlineSchema).max(10).optional(),
   // Card metadata
   tags: z.array(z.string().max(100)).max(20).optional(),
   cardSummary: z.string().min(1).max(5000),
