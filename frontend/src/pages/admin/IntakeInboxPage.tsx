@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { IntakeItem, IntakeStatus, Entity } from '@ledger/shared';
 import { api } from '../../lib/api';
-import ErrorMessage, { formatErrorMessage } from '../../components/ErrorMessage';
+import ErrorMessage from '../../components/ErrorMessage';
+import { useToast } from '../../components/Toast';
 
 type StatusFilter = IntakeStatus | 'ALL';
 
@@ -20,6 +21,7 @@ export default function IntakeInboxPage() {
   const [selectedItem, setSelectedItem] = useState<IntakeItem | null>(null);
   const [promoting, setPromoting] = useState(false);
   const [entities, setEntities] = useState<Entity[]>([]);
+  const { showError, showSuccess } = useToast();
 
   // Promote form state
   const [promoteMode, setPromoteMode] = useState<'existing' | 'new'>('new');
@@ -65,8 +67,9 @@ export default function IntakeInboxPage() {
     try {
       await api.rejectIntake(item.intakeId);
       setItems((prev) => prev.filter((i) => i.intakeId !== item.intakeId));
+      showSuccess('Item rejected');
     } catch (err) {
-      alert(formatErrorMessage(err));
+      showError(err);
     }
   }
 
@@ -89,20 +92,20 @@ export default function IntakeInboxPage() {
       .map((t) => t.trim())
       .filter(Boolean);
 
-    try {
-      if (promoteMode === 'existing' && !selectedEntityId) {
-        alert('Please select an entity');
-        return;
-      }
-      if (promoteMode === 'new' && !newEntityName) {
-        alert('Please enter entity name');
-        return;
-      }
-      if (!cardSummary) {
-        alert('Please enter a card summary');
-        return;
-      }
+    if (promoteMode === 'existing' && !selectedEntityId) {
+      showError('Please select an entity');
+      return;
+    }
+    if (promoteMode === 'new' && !newEntityName) {
+      showError('Please enter entity name');
+      return;
+    }
+    if (!cardSummary) {
+      showError('Please enter a card summary');
+      return;
+    }
 
+    try {
       await api.promoteIntake(selectedItem.intakeId, {
         entityId: promoteMode === 'existing' ? selectedEntityId : undefined,
         createEntity:
@@ -116,8 +119,9 @@ export default function IntakeInboxPage() {
       setItems((prev) => prev.filter((i) => i.intakeId !== selectedItem.intakeId));
       setPromoting(false);
       setSelectedItem(null);
+      showSuccess('Item promoted to evidence card');
     } catch (err) {
-      alert(formatErrorMessage(err));
+      showError(err);
     }
   }
 

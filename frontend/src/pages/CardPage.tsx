@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import type { EvidenceCardWithEntities, Source } from '@ledger/shared';
 import { api } from '../lib/api';
 import ScoreDisplay from '../components/ScoreDisplay';
+import { useToast } from '../components/Toast';
 
 const statusLabels: Record<string, string> = {
   DRAFT: 'Draft',
@@ -32,6 +33,7 @@ export default function CardPage() {
   const [sources, setSources] = useState<Source[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { showError } = useToast();
 
   useEffect(() => {
     if (cardId) {
@@ -62,8 +64,8 @@ export default function CardPage() {
     try {
       const { downloadUrl } = await api.getSourceDownloadUrl(sourceId);
       window.open(downloadUrl, '_blank');
-    } catch {
-      alert('Failed to get download URL');
+    } catch (err) {
+      showError(err);
     }
   }
 

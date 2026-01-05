@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { EvidenceCard } from '@ledger/shared';
 import { api } from '../../lib/api';
+import ErrorMessage from '../../components/ErrorMessage';
+import { useToast } from '../../components/Toast';
 
 export default function AdminReviewQueuePage() {
   const [cards, setCards] = useState<EvidenceCard[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const { showError, showSuccess } = useToast();
 
   useEffect(() => {
     loadReviewQueue();
@@ -23,7 +26,7 @@ export default function AdminReviewQueuePage() {
       );
       setCards(reviewableCards);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load queue');
+      setError(err instanceof Error ? err : new Error('Failed to load queue'));
     } finally {
       setLoading(false);
     }
@@ -32,10 +35,10 @@ export default function AdminReviewQueuePage() {
   async function handlePublish(cardId: string) {
     try {
       await api.publishCard(cardId);
-      // Remove from list
       setCards((prev) => prev.filter((c) => c.cardId !== cardId));
+      showSuccess('Card published');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to publish');
+      showError(err);
     }
   }
 
@@ -46,10 +49,10 @@ export default function AdminReviewQueuePage() {
     try {
       // Return to draft
       // In a real implementation, we'd have a reject endpoint
-      alert('Card returned to draft');
+      showSuccess('Card returned to draft');
       setCards((prev) => prev.filter((c) => c.cardId !== cardId));
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to reject');
+      showError(err);
     }
   }
 
@@ -65,11 +68,7 @@ export default function AdminReviewQueuePage() {
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Review Queue</h1>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-          <p className="text-red-800">{error}</p>
-        </div>
-      )}
+      <ErrorMessage error={error} onDismiss={() => setError(null)} />
 
       {cards.length === 0 ? (
         <div className="card p-8 text-center">

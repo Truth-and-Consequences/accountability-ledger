@@ -7,6 +7,8 @@ import type {
   RelationshipStatus,
 } from '@ledger/shared';
 import { api } from '../../lib/api';
+import ErrorMessage from '../../components/ErrorMessage';
+import { useToast } from '../../components/Toast';
 
 const RELATIONSHIP_TYPES: { value: RelationshipType; label: string }[] = [
   { value: 'OWNS', label: 'Owns' },
@@ -47,8 +49,9 @@ function getStatusBadgeClass(status: RelationshipStatus): string {
 export default function RelationshipsPage() {
   const [relationships, setRelationships] = useState<RelationshipWithEntities[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [statusFilter, setStatusFilter] = useState<RelationshipStatus | 'ALL'>('ALL');
+  const { showError, showSuccess } = useToast();
   const [hasMore, setHasMore] = useState(false);
   const [cursor, setCursor] = useState<string | undefined>();
 
@@ -102,7 +105,7 @@ export default function RelationshipsPage() {
       setHasMore(result.hasMore);
       setCursor(result.cursor);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load relationships');
+      setError(err instanceof Error ? err : new Error('Failed to load relationships'));
     } finally {
       setLoading(false);
     }
@@ -145,12 +148,12 @@ export default function RelationshipsPage() {
 
   async function handleSave() {
     if (!fromEntityId || !toEntityId) {
-      alert('Please select both entities');
+      showError('Please select both entities');
       return;
     }
 
     if (fromEntityId === toEntityId) {
-      alert('From and To entities must be different');
+      showError('From and To entities must be different');
       return;
     }
 
@@ -185,14 +188,16 @@ export default function RelationshipsPage() {
             : undefined,
           sourceRefs: sourceRefList,
         });
+        showSuccess('Relationship updated');
       } else {
         await api.createRelationship(data);
+        showSuccess('Relationship created');
       }
 
       setShowModal(false);
       loadRelationships();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to save relationship');
+      showError(err);
     } finally {
       setSaving(false);
     }
@@ -204,14 +209,15 @@ export default function RelationshipsPage() {
     try {
       await api.publishRelationship(relationshipId);
       loadRelationships();
+      showSuccess('Relationship published');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to publish relationship');
+      showError(err);
     }
   }
 
   async function handleRetract() {
     if (!retractingId || !retractReason.trim()) {
-      alert('Please provide a reason for retraction');
+      showError('Please provide a reason for retraction');
       return;
     }
 
@@ -220,8 +226,9 @@ export default function RelationshipsPage() {
       setRetractingId(null);
       setRetractReason('');
       loadRelationships();
+      showSuccess('Relationship retracted');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to retract relationship');
+      showError(err);
     }
   }
 
@@ -274,11 +281,7 @@ export default function RelationshipsPage() {
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-          <p className="text-red-800">{error}</p>
-        </div>
-      )}
+      <ErrorMessage error={error} onDismiss={() => setError(null)} />
 
       {relationships.length === 0 ? (
         <div className="card p-8 text-center">
