@@ -114,6 +114,27 @@ describe('validation schemas', () => {
       expect(result.identifiers?.ticker).toBe('ACME');
     });
 
+    it('accepts PERSON entity type', () => {
+      const result = createEntitySchema.parse({
+        name: 'John Smith',
+        type: EntityType.PERSON,
+      });
+      expect(result.name).toBe('John Smith');
+      expect(result.type).toBe('PERSON');
+    });
+
+    it('accepts all valid entity types', () => {
+      const validTypes = ['CORPORATION', 'AGENCY', 'NONPROFIT', 'VENDOR', 'INDIVIDUAL_PUBLIC_OFFICIAL', 'PERSON'];
+      for (const type of validTypes) {
+        expect(
+          createEntitySchema.safeParse({
+            name: 'Test Entity',
+            type,
+          }).success
+        ).toBe(true);
+      }
+    });
+
     it('rejects invalid entity types', () => {
       expect(
         createEntitySchema.safeParse({

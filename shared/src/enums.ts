@@ -31,6 +31,7 @@ export const EntityType = {
   NONPROFIT: 'NONPROFIT',
   VENDOR: 'VENDOR',
   INDIVIDUAL_PUBLIC_OFFICIAL: 'INDIVIDUAL_PUBLIC_OFFICIAL',
+  PERSON: 'PERSON',
 } as const;
 export type EntityType = (typeof EntityType)[keyof typeof EntityType];
 

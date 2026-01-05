@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { EntityType, type EntitySearchResult, type CreateEntityRequest } from '@ledger/shared';
 import { api } from '../lib/api';
 import { useToast } from './Toast';
@@ -8,6 +8,7 @@ interface CreateEntityModalProps {
   onClose: () => void;
   onCreated: (entity: EntitySearchResult) => void;
   initialName?: string;
+  initialType?: EntityType;
 }
 
 const ENTITY_TYPE_OPTIONS: { value: EntityType; label: string }[] = [
@@ -16,6 +17,7 @@ const ENTITY_TYPE_OPTIONS: { value: EntityType; label: string }[] = [
   { value: 'NONPROFIT', label: 'Nonprofit' },
   { value: 'VENDOR', label: 'Vendor' },
   { value: 'INDIVIDUAL_PUBLIC_OFFICIAL', label: 'Public Official' },
+  { value: 'PERSON', label: 'Individual / Person' },
 ];
 
 export default function CreateEntityModal({
@@ -23,18 +25,20 @@ export default function CreateEntityModal({
   onClose,
   onCreated,
   initialName = '',
+  initialType,
 }: CreateEntityModalProps) {
   const { showError, showSuccess } = useToast();
   const [name, setName] = useState(initialName);
-  const [type, setType] = useState<EntityType>('CORPORATION');
+  const [type, setType] = useState<EntityType>(initialType || 'CORPORATION');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Reset form when modal opens with new initial name
-  useState(() => {
+  // Reset form when modal opens with new initial values
+  useEffect(() => {
     if (isOpen) {
       setName(initialName);
+      setType(initialType || 'CORPORATION');
     }
-  });
+  }, [isOpen, initialName, initialType]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

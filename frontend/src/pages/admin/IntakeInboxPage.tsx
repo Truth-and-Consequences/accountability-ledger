@@ -82,6 +82,8 @@ export default function IntakeInboxPage() {
   // Create entity modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createEntityName, setCreateEntityName] = useState('');
+  const [createEntityType, setCreateEntityType] = useState<EntityType | undefined>(undefined);
+  const [pendingSuggestion, setPendingSuggestion] = useState<SuggestedEntity | null>(null);
 
   // LLM extraction suggestions state
   const [unmatchedSuggestions, setUnmatchedSuggestions] = useState<SuggestedEntity[]>([]);
@@ -155,17 +157,23 @@ export default function IntakeInboxPage() {
 
   function handleEntityCreated(entity: EntitySearchResult) {
     setSelectedEntities((prev) => [...prev, entity]);
+    // Remove the pending suggestion from unmatched list (entity was created successfully)
+    if (pendingSuggestion) {
+      setUnmatchedSuggestions((prev) =>
+        prev.filter((s) => s.extractedName !== pendingSuggestion.extractedName)
+      );
+      setPendingSuggestion(null);
+    }
     setShowCreateModal(false);
   }
 
   function handleCreateFromSuggestion(suggestion: SuggestedEntity) {
+    // Store pending suggestion to remove only on success (not on cancel)
+    setPendingSuggestion(suggestion);
     // Open create modal with suggested name and type pre-filled
     setCreateEntityName(suggestion.extractedName);
+    setCreateEntityType(suggestion.suggestedType);
     setShowCreateModal(true);
-    // Remove from unmatched list
-    setUnmatchedSuggestions((prev) =>
-      prev.filter((s) => s.extractedName !== suggestion.extractedName)
-    );
   }
 
   function handleDismissSuggestion(suggestion: SuggestedEntity) {
@@ -628,9 +636,13 @@ export default function IntakeInboxPage() {
       {/* Create Entity Modal */}
       <CreateEntityModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          setPendingSuggestion(null); // Clear pending suggestion on cancel (keeps it in unmatched list)
+        }}
         onCreated={handleEntityCreated}
         initialName={createEntityName}
+        initialType={createEntityType}
       />
     </div>
   );
