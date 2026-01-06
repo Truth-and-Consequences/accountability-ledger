@@ -302,11 +302,55 @@ export async function retractRelationship(
 }
 
 /**
+ * Hydrate relationships with entity data (fromEntity, toEntity)
+ */
+async function hydrateRelationshipsWithEntities(
+  relationships: Relationship[]
+): Promise<RelationshipWithEntities[]> {
+  if (relationships.length === 0) return [];
+
+  // Collect all unique entity IDs
+  const entityIds = new Set<string>();
+  for (const rel of relationships) {
+    entityIds.add(rel.fromEntityId);
+    entityIds.add(rel.toEntityId);
+  }
+
+  // Fetch all entities in parallel
+  const entityMap = new Map<string, { entityId: string; name: string; type: string }>();
+  await Promise.all(
+    Array.from(entityIds).map(async (id) => {
+      try {
+        const entity = await getEntity(id);
+        entityMap.set(id, {
+          entityId: entity.entityId,
+          name: entity.name,
+          type: entity.type,
+        });
+      } catch {
+        entityMap.set(id, {
+          entityId: id,
+          name: '[Unknown Entity]',
+          type: 'UNKNOWN',
+        });
+      }
+    })
+  );
+
+  // Hydrate relationships
+  return relationships.map((rel) => ({
+    ...rel,
+    fromEntity: entityMap.get(rel.fromEntityId)!,
+    toEntity: entityMap.get(rel.toEntityId)!,
+  }));
+}
+
+/**
  * List relationships with optional filters
  */
 export async function listRelationships(
   params: RelationshipQueryParams
-): Promise<PaginatedResponse<Relationship>> {
+): Promise<PaginatedResponse<RelationshipWithEntities>> {
   const limit = params.limit || 20;
   const exclusiveStartKey = params.cursor ? decodeCursor(params.cursor) : undefined;
 
@@ -333,8 +377,10 @@ export async function listRelationships(
       relationships = relationships.filter((r) => r.status === params.status);
     }
 
+    const hydrated = await hydrateRelationshipsWithEntities(relationships);
+
     return {
-      items: relationships,
+      items: hydrated,
       cursor: lastEvaluatedKey ? encodeCursor(lastEvaluatedKey) : undefined,
       hasMore: !!lastEvaluatedKey,
     };
@@ -360,8 +406,10 @@ export async function listRelationships(
       relationships = relationships.filter((r) => r.type === params.type);
     }
 
+    const hydrated = await hydrateRelationshipsWithEntities(relationships);
+
     return {
-      items: relationships,
+      items: hydrated,
       cursor: lastEvaluatedKey ? encodeCursor(lastEvaluatedKey) : undefined,
       hasMore: !!lastEvaluatedKey,
     };
@@ -381,9 +429,10 @@ export async function listRelationships(
   });
 
   const relationships = items.map((item) => stripKeys(item) as Relationship);
+  const hydrated = await hydrateRelationshipsWithEntities(relationships);
 
   return {
-    items: relationships,
+    items: hydrated,
     cursor: lastEvaluatedKey ? encodeCursor(lastEvaluatedKey) : undefined,
     hasMore: !!lastEvaluatedKey,
   };
