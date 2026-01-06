@@ -672,18 +672,18 @@ const routes: Record<string, Record<string, RouteHandler>> = {
           intakeItem.canonicalUrl,
           ctx.userId!
         );
-        ctx.logger.info('HTML snapshot captured', {
+        ctx.logger.info({
           sourceId: source.sourceId,
           sha256: verifiedSource.sha256,
           byteLength: verifiedSource.byteLength,
-        });
+        }, 'HTML snapshot captured');
       } catch (snapshotError) {
         // Log warning but don't fail the promotion - source is still created
-        ctx.logger.warn('Failed to capture HTML snapshot', {
+        ctx.logger.warn({
           sourceId: source.sourceId,
           url: intakeItem.canonicalUrl,
           error: snapshotError instanceof Error ? snapshotError.message : String(snapshotError),
-        });
+        }, 'Failed to capture HTML snapshot');
       }
 
       // Create card from intake item with all selected entities
