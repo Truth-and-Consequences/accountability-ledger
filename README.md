@@ -2,6 +2,73 @@
 
 A public, evidence-first platform for documenting corporate and government misconduct using verified public sources.
 
+## About
+
+### Mission
+
+The Accountability Ledger is a public, evidence-first platform that documents corporate and government misconduct using verified public sources. Our goal is to create a transparent, accessible record of accountability that serves the public interest.
+
+Every claim on this platform is backed by primary source documents from official agencies, court filings, and other public records. We believe that accountability requires evidence, not allegations.
+
+### Methodology
+
+**Evidence Standards:**
+- **Primary sources preferred:** We prioritize official documents from government agencies, courts, and regulatory bodies
+- **Secondary sources labeled:** When primary sources are unavailable, secondary sources are clearly identified
+- **Falsifiable claims:** Every claim must be specific enough to be verified or refuted
+- **Fact vs. interpretation:** We clearly separate documented facts from editorial interpretation
+
+**Source Verification:**
+All source documents are cryptographically verified using SHA-256 hashing and digitally signed using AWS KMS. This ensures that source materials cannot be tampered with after publication.
+
+### Privacy & Ethics
+
+- **No personal information:** We do not publish non-public personal data
+- **Public officials only:** Individual names appear only for public officials in their official capacity
+- **No harassment:** We explicitly prohibit content that could encourage harassment or vigilantism
+- **Right of reply:** Entities may submit responses through official channels; these are logged and displayed
+
+### Contact
+
+For corrections, disputes, or general inquiries, please contact us through official channels. All communications are logged for transparency.
+
+- **Corrections & Disputes:** corrections@accountabilityledger.org *(coming soon)*
+- **General Inquiries:** info@accountabilityledger.org *(coming soon)*
+
+## Features
+
+### Entity Summaries (Fact Packs)
+
+The platform generates deterministic fact pack summaries for each entity:
+- Groups published claims by type (enforcement actions, settlements, penalties, etc.)
+- Calculates total monetary impact
+- Generates template-driven narrative summaries
+- Supports filtering by claim type and date range
+
+### Claim Metadata
+
+Evidence cards support rich metadata for enhanced claims:
+- **Claim Stance**: Who is making the claim (agency, court, company, etc.)
+- **Claim Type**: Category of claim (enforcement, settlement, penalty, etc.)
+- **Monetary Amount**: Financial impact with currency and type
+- **Affected Count**: Number of individuals, accounts, or facilities affected
+- **Source References**: Page numbers, sections, and quotes from sources
+
+### Entity Relationships
+
+Track corporate ownership and relationships:
+- Relationship types: OWNS, CONTROLS, SUBSIDIARY_OF, ACQUIRED, and more
+- Ownership percentage tracking
+- Ownership tree visualization
+- All relationships require verified sources
+
+## Documentation
+
+- [Editorial Policy](docs/editorial-policy.md)
+- [Corrections Policy](docs/corrections-policy.md)
+- [Threat Model](docs/threat-model.md)
+- [Operations Runbook](docs/runbook.md)
+
 ## Architecture
 
 - **Frontend**: React + Vite + TypeScript (static SPA on S3 + CloudFront)
@@ -136,33 +203,6 @@ Set via CDK or SSM Parameter Store:
 - `POST /admin/relationships/{id}/retract` - Retract relationship
 - `POST /admin/entities/{id}/aliases` - Add entity alias
 
-## Features
-
-### Entity Summaries (Fact Packs)
-
-The platform generates deterministic fact pack summaries for each entity:
-- Groups published claims by type (enforcement actions, settlements, penalties, etc.)
-- Calculates total monetary impact
-- Generates template-driven narrative summaries
-- Supports filtering by claim type and date range
-
-### Claim Metadata
-
-Evidence cards support rich metadata for enhanced claims:
-- **Claim Stance**: Who is making the claim (agency, court, company, etc.)
-- **Claim Type**: Category of claim (enforcement, settlement, penalty, etc.)
-- **Monetary Amount**: Financial impact with currency and type
-- **Affected Count**: Number of individuals, accounts, or facilities affected
-- **Source References**: Page numbers, sections, and quotes from sources
-
-### Entity Relationships
-
-Track corporate ownership and relationships:
-- Relationship types: OWNS, CONTROLS, SUBSIDIARY_OF, ACQUIRED, and more
-- Ownership percentage tracking
-- Ownership tree visualization
-- All relationships require verified sources
-
 ## Security Features
 
 - **Source Integrity**: SHA-256 hashing + KMS signing
@@ -171,13 +211,6 @@ Track corporate ownership and relationships:
 - **MFA Required**: TOTP for all admin accounts
 - **Audit Logging**: All admin actions logged
 - **Rate Limiting**: WAF + API Gateway throttling
-
-## Documentation
-
-- [Editorial Policy](docs/editorial-policy.md)
-- [Corrections Policy](docs/corrections-policy.md)
-- [Threat Model](docs/threat-model.md)
-- [Operations Runbook](docs/runbook.md)
 
 ## License
 
