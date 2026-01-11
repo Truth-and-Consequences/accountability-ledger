@@ -131,6 +131,8 @@ jobs:
           DOMAIN_NAME: ${{ env.DOMAIN_NAME }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           EXTRACTION_PROMPT_BUCKET: ${{ secrets.EXTRACTION_PROMPT_BUCKET }}
+          EDITOR_ENABLED: ${{ vars.EDITOR_ENABLED || 'false' }}
+          EDITOR_DRY_RUN: ${{ vars.EDITOR_DRY_RUN || 'true' }}
 
       - name: CDK Deploy
         working-directory: infra/cdk
@@ -139,6 +141,8 @@ jobs:
           DOMAIN_NAME: ${{ env.DOMAIN_NAME }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           EXTRACTION_PROMPT_BUCKET: ${{ secrets.EXTRACTION_PROMPT_BUCKET }}
+          EDITOR_ENABLED: ${{ vars.EDITOR_ENABLED || 'false' }}
+          EDITOR_DRY_RUN: ${{ vars.EDITOR_DRY_RUN || 'true' }}
 
       - name: Get CloudFront Distribution ID
         id: cloudfront
