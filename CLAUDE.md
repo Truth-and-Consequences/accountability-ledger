@@ -62,8 +62,8 @@ Authorization test coverage exists in:
 
 ## Release Process
 
-- Use `npm run release:patch` for bug fixes and minor features
-- Use `npm run release:minor` for completed phases/major features
+- Use `/commit-push-pr` to commit, push, and release in one step
+- Or manually: `npm run release:patch` for bug fixes, `npm run release:minor` for major features
 - All releases trigger GitHub Actions deployment to production
 - TODO.md is in .gitignore - stays local only
 

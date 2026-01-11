@@ -19,7 +19,7 @@ import { config } from '../config.js';
 import { invokeClaudeExtraction } from '../anthropic.js';
 import { logger } from '../logger.js';
 import { queryItems, putItem, stripKeys } from '../dynamodb.js';
-import { createEntity, getEntity } from './entities.js';
+import { createEntity, getEntity, findEntityByName } from './entities.js';
 import { createSource, captureHtmlSnapshot } from './sources.js';
 import { createCard, publishCard, listCards } from './cards.js';
 import { createRelationship, publishRelationship } from './relationships.js';
@@ -330,6 +330,14 @@ async function processItem(
           editorLogger.warn({ entityId: entityRef.entityId }, 'Entity ID not found in database, skipping');
         }
       } else if ('create' in entityRef && !dryRun) {
+        // First check if entity with this name already exists
+        const existingByName = await findEntityByName(entityRef.create.name);
+        if (existingByName) {
+          resolvedEntityIds.push(existingByName.entityId);
+          editorLogger.info({ entityId: existingByName.entityId, name: existingByName.name }, 'Found existing entity by name');
+          continue;
+        }
+
         // Create new entity - map LLM types to valid EntityType values
         const typeMap: Record<string, EntityType> = {
           'CORPORATION': 'CORPORATION',
