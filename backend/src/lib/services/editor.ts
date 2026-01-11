@@ -53,6 +53,7 @@ export interface EditorResponse {
   confidence: number;
   category?: string;
   entities: Array<
+    | { matchedIndex: number }
     | { entityId: string }
     | { create: { name: string; type: string } }
   >;
@@ -320,12 +321,22 @@ async function processItem(
     const resolvedEntityIds: string[] = [];
 
     for (const entityRef of editorResponse.entities) {
-      if ('entityId' in entityRef) {
-        // Validate that the entity ID actually exists in the database
+      if ('matchedIndex' in entityRef) {
+        // Use index to look up entity from the matched entities array
+        const index = entityRef.matchedIndex;
+        if (index >= 0 && index < matchedEntities.length) {
+          const matched = matchedEntities[index];
+          resolvedEntityIds.push(matched.entityId);
+          editorLogger.debug({ entityId: matched.entityId, name: matched.name, index }, 'Using matched entity by index');
+        } else {
+          editorLogger.warn({ matchedIndex: index, matchedCount: matchedEntities.length }, 'Invalid matchedIndex, skipping');
+        }
+      } else if ('entityId' in entityRef) {
+        // Legacy: Validate that the entity ID actually exists in the database
         const existingEntity = await getEntity(entityRef.entityId);
         if (existingEntity) {
           resolvedEntityIds.push(entityRef.entityId);
-          editorLogger.debug({ entityId: entityRef.entityId, name: existingEntity.name }, 'Using existing entity');
+          editorLogger.debug({ entityId: entityRef.entityId, name: existingEntity.name }, 'Using existing entity by ID');
         } else {
           editorLogger.warn({ entityId: entityRef.entityId }, 'Entity ID not found in database, skipping');
         }

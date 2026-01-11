@@ -89,7 +89,7 @@ Respond with ONLY a JSON object, no markdown, no explanation:
   "confidence": 0.0-1.0,
   "category": "labor|consumer|environment|procurement|privacy|lobbying|fraud|governance|other",
   "entities": [
-    { "entityId": "existing-id-from-matched-list" }
+    { "matchedIndex": 0 }
     or
     { "create": { "name": "Entity Name", "type": "CORPORATION|GOVERNMENT_AGENCY|INDIVIDUAL|NON_PROFIT|POLITICAL_ENTITY|OTHER" } }
   ],
@@ -106,8 +106,9 @@ Respond with ONLY a JSON object, no markdown, no explanation:
 
 ## Notes
 
+- Use `matchedIndex` to reference entities from the "Existing Entity Matches" list above (0-indexed)
+- Use `create` only when no suitable match exists in the database
 - `entities` array indices are used in `relationships.fromEntityIndex` and `relationships.toEntityIndex`
-- When using existing entities, copy the EXACT `entityId` from the matched entities list above (e.g., "01KEQA8R0JEV8XY0ZGS8FM7XJM")
 - Only include entities that are directly relevant to the misconduct
 - Only include relationships that are clearly evidenced in the source
 - If SKIP, you can leave category, entities, relationships, and cardSummary empty

@@ -9,7 +9,7 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "lint": "echo 'Use root lint command'",
-    "test": "vitest run",
+    "test": "vitest run --reporter=verbose",
     "test:watch": "vitest",
     "clean": "rimraf dist"
   },
