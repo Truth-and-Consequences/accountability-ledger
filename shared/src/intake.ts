@@ -7,6 +7,18 @@ export type IntakeStatus = 'NEW' | 'REVIEWED' | 'PROMOTED' | 'REJECTED';
 // LLM extraction status
 export type ExtractionStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
 
+// LLM editor decision status
+export type EditorStatus = 'PENDING' | 'APPROVED' | 'SKIPPED';
+
+// Editor decision record
+export interface EditorDecision {
+  decision: 'PUBLISH' | 'SKIP';
+  reason: string;
+  confidence: number;
+  decidedAt: string;
+  runId: string;
+}
+
 // Entity suggestion from LLM extraction
 export interface SuggestedEntity {
   // Name as extracted from text
@@ -107,6 +119,10 @@ export interface IntakeItem {
   // Promotion tracking
   promotedSourceId?: string;
   promotedCardId?: string;
+
+  // LLM editor tracking
+  editorStatus?: EditorStatus;
+  editorDecision?: EditorDecision;
 
   // Timestamps
   ingestedAt: string;

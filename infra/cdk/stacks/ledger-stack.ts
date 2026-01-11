@@ -542,6 +542,83 @@ export class LedgerStack extends cdk.Stack {
     );
 
     // ============================================================
+    // Intake Editor Lambda (LLM-based autonomous publishing)
+    // ============================================================
+    const editorLogGroup = logs.LogGroup.fromLogGroupName(
+      this,
+      'EditorLogGroup',
+      `/aws/lambda/${prefix}-intake-editor`
+    );
+
+    const intakeEditorFunction = new lambda.Function(this, 'IntakeEditorFunction', {
+      functionName: `${prefix}-intake-editor`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'handlers/intake-editor.handler',
+      code: lambda.Code.fromAsset('../../backend/dist'),
+      memorySize: 1024, // Higher memory for LLM processing
+      timeout: cdk.Duration.minutes(10), // Longer timeout for batch processing
+      logGroup: editorLogGroup,
+      environment: {
+        NODE_ENV: environment,
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
+        // Tables
+        INTAKE_TABLE: intakeTable.tableName,
+        ENTITIES_TABLE: entitiesTable.tableName,
+        CARDS_TABLE: cardsTable.tableName,
+        SOURCES_TABLE: sourcesTable.tableName,
+        RELATIONSHIPS_TABLE: relationshipsTable.tableName,
+        AUDIT_TABLE: auditTable.tableName,
+        // S3
+        SOURCES_BUCKET: sourcesBucket.bucketName,
+        // KMS
+        KMS_SIGNING_KEY_ID: signingKey.keyId,
+        // Anthropic
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+        ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307',
+        // Extraction prompt bucket (reused for editor prompt)
+        EXTRACTION_PROMPT_BUCKET: extractionPromptBucket,
+        // Editor config
+        EDITOR_ENABLED: process.env.EDITOR_ENABLED || 'false', // Disabled by default
+        EDITOR_DRY_RUN: process.env.EDITOR_DRY_RUN || 'true', // Dry run by default
+        EDITOR_MAX_ITEMS: '20',
+        EDITOR_MIN_CONFIDENCE: '0.8',
+        EDITOR_PROMPT_KEY: 'prompts/editor-template.txt',
+        LOG_LEVEL: environment === 'prod' ? 'info' : 'debug',
+      },
+    });
+
+    // Grant permissions to editor function
+    intakeTable.grantReadWriteData(intakeEditorFunction);
+    entitiesTable.grantReadWriteData(intakeEditorFunction);
+    cardsTable.grantReadWriteData(intakeEditorFunction);
+    sourcesTable.grantReadWriteData(intakeEditorFunction);
+    relationshipsTable.grantReadWriteData(intakeEditorFunction);
+    auditTable.grantWriteData(intakeEditorFunction);
+    sourcesBucket.grantReadWrite(intakeEditorFunction);
+    signingKey.grant(intakeEditorFunction, 'kms:Sign', 'kms:GetPublicKey');
+
+    // Grant read access to prompt bucket
+    if (extractionPromptBucket === sourcesBucket.bucketName) {
+      sourcesBucket.grantRead(intakeEditorFunction);
+    } else {
+      const externalBucket = s3.Bucket.fromBucketName(this, 'EditorExternalPromptBucket', extractionPromptBucket);
+      externalBucket.grantRead(intakeEditorFunction);
+    }
+
+    // Schedule: Run at 7:00 AM UTC daily (after ingestion at 6:00 and extraction at 6:30)
+    const editorScheduleRule = new events.Rule(this, 'EditorScheduleRule', {
+      ruleName: `${prefix}-editor-schedule`,
+      schedule: events.Schedule.cron({ minute: '0', hour: '7' }),
+      description: 'LLM-based autonomous editor for publishing intake items',
+    });
+
+    editorScheduleRule.addTarget(
+      new eventsTargets.LambdaFunction(intakeEditorFunction, {
+        retryAttempts: 2,
+      })
+    );
+
+    // ============================================================
     // API Gateway
     // ============================================================
     const httpApi = new apigateway.HttpApi(this, 'HttpApi', {

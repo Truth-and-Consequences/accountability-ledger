@@ -5,6 +5,7 @@ export default defineConfig({
     'handlers/api': 'src/handlers/api.ts',
     'handlers/intake-ingest': 'src/handlers/intake-ingest.ts',
     'handlers/intake-extract': 'src/handlers/intake-extract.ts',
+    'handlers/intake-editor': 'src/handlers/intake-editor.ts',
   },
   format: ['cjs'],
   outExtension: () => ({ js: '.js' }), // Use .js extension for Lambda compatibility

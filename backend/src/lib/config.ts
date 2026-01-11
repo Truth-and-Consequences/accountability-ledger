@@ -56,6 +56,15 @@ export const config = {
     promptTemplateKey: process.env.EXTRACTION_PROMPT_KEY || 'prompts/extraction-template.txt',
   },
 
+  // LLM editor settings (autonomous publishing)
+  editor: {
+    enabled: process.env.EDITOR_ENABLED === 'true',
+    dryRun: process.env.EDITOR_DRY_RUN === 'true',
+    maxItemsPerRun: parseInt(process.env.EDITOR_MAX_ITEMS || '20', 10),
+    minConfidence: parseFloat(process.env.EDITOR_MIN_CONFIDENCE || '0.8'),
+    promptTemplateKey: process.env.EDITOR_PROMPT_KEY || 'prompts/editor-template.txt',
+  },
+
   // App version (set during build)
   version: process.env.APP_VERSION || '0.1.0',
 } as const;
