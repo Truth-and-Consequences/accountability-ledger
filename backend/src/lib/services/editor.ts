@@ -12,7 +12,9 @@ import type {
   SuggestedEntity,
   EntityType,
   RelationshipType,
+  CardCategory,
 } from '@ledger/shared';
+import { CardCategory as CardCategoryEnum } from '@ledger/shared';
 import { config } from '../config.js';
 import { invokeClaudeExtraction } from '../anthropic.js';
 import { logger } from '../logger.js';
@@ -49,6 +51,7 @@ export interface EditorResponse {
   decision: 'PUBLISH' | 'SKIP';
   reason: string;
   confidence: number;
+  category?: string;
   entities: Array<
     | { entityId: string }
     | { create: { name: string; type: string } }
@@ -173,6 +176,7 @@ function parseEditorResponse(content: string): EditorResponse | null {
       decision: parsed.decision,
       reason: parsed.reason || 'No reason provided',
       confidence: Math.min(1, Math.max(0, parsed.confidence || 0)),
+      category: parsed.category,
       entities: parsed.entities || [],
       relationships: parsed.relationships || [],
       cardSummary: parsed.cardSummary || '',
@@ -317,8 +321,14 @@ async function processItem(
 
     for (const entityRef of editorResponse.entities) {
       if ('entityId' in entityRef) {
-        // Use existing entity
-        resolvedEntityIds.push(entityRef.entityId);
+        // Validate that the entity ID actually exists in the database
+        const existingEntity = await getEntity(entityRef.entityId);
+        if (existingEntity) {
+          resolvedEntityIds.push(entityRef.entityId);
+          editorLogger.debug({ entityId: entityRef.entityId, name: existingEntity.name }, 'Using existing entity');
+        } else {
+          editorLogger.warn({ entityId: entityRef.entityId }, 'Entity ID not found in database, skipping');
+        }
       } else if ('create' in entityRef && !dryRun) {
         // Create new entity - map LLM types to valid EntityType values
         const typeMap: Record<string, EntityType> = {
@@ -413,13 +423,20 @@ async function processItem(
       );
     }
 
+    // Determine category - validate LLM response or default to 'other'
+    const validCategories: string[] = Object.values(CardCategoryEnum);
+    const rawCategory = editorResponse.category?.toLowerCase();
+    const category: CardCategory = rawCategory && validCategories.includes(rawCategory)
+      ? rawCategory as CardCategory
+      : 'other';
+
     // Create card
     const card = await createCard(
       {
         title: item.title,
         claim: item.title,
         summary: editorResponse.cardSummary || item.extractedSummary || item.summary || '',
-        category: 'consumer',
+        category,
         entityIds: resolvedEntityIds,
         eventDate: item.publishedAt.split('T')[0],
         sourceRefs: [source.sourceId],

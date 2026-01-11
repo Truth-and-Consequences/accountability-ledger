@@ -1,6 +1,7 @@
 # Accountability Ledger - Project Guidelines
 See top level CLAUDE.md at C:\Users\tyler\CLAUDE.md
-See repo level settings at C:\Users\tyler\Projects\light\.claude\settings.local.json
+See repo level settings and commands at C:\Users\tyler\Projects\light\.claude\
+
 ## Guiding Principles
 
 These principles MUST hold for all work on this codebase:
@@ -21,6 +22,17 @@ light/
 ```
 
 ## Code Patterns
+
+### Use Shared Enums
+Always use enums from `@ledger/shared` instead of hardcoding values. This ensures consistency and makes refactoring easier:
+```typescript
+// Good - use the shared enum
+import { CardCategory } from '@ledger/shared';
+const validCategories = Object.values(CardCategory);
+
+// Bad - hardcoded values that can get out of sync
+const validCategories = ['labor', 'consumer', 'fraud', ...];
+```
 
 ### Frontend Error Display
 Use the toast notification system for user feedback:

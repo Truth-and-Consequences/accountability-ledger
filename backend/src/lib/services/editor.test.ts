@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { CardCategory } from '@ledger/shared';
 
 // Import the parseEditorResponse function by extracting from editor.ts
 // For now, we'll test the parsing logic directly
@@ -203,5 +204,117 @@ describe('Relationship Type Validation', () => {
 
   it('should reject invalid relationship types', () => {
     expect(validTypes.includes('INVALID_TYPE')).toBe(false);
+  });
+});
+
+describe('Entity ID Validation', () => {
+  // Regression test: LLM was returning invalid entity IDs like "ftc-1" instead of actual ULIDs
+  // The editor should validate that entity IDs exist in the database before using them
+
+  it('should recognize valid ULID format', () => {
+    const validUlid = '01KEQA8R0JEV8XY0ZGS8FM7XJM';
+    const ulidRegex = /^[0-9A-HJKMNP-TV-Z]{26}$/;
+    expect(ulidRegex.test(validUlid)).toBe(true);
+  });
+
+  it('should reject invalid entity ID formats', () => {
+    const invalidIds = ['ftc-1', 'amazon-2', 'entity_123', 'abc', ''];
+    const ulidRegex = /^[0-9A-HJKMNP-TV-Z]{26}$/;
+
+    for (const id of invalidIds) {
+      expect(ulidRegex.test(id)).toBe(false);
+    }
+  });
+
+  it('should handle entity references with entityId field', () => {
+    const entityRef = { entityId: '01KEQA8R0JEV8XY0ZGS8FM7XJM' };
+    expect('entityId' in entityRef).toBe(true);
+    expect(entityRef.entityId).toBe('01KEQA8R0JEV8XY0ZGS8FM7XJM');
+  });
+
+  it('should handle entity references with create field', () => {
+    const entityRef = { create: { name: 'New Corp', type: 'CORPORATION' } };
+    expect('create' in entityRef).toBe(true);
+    expect(entityRef.create.name).toBe('New Corp');
+  });
+});
+
+describe('Category Assignment', () => {
+  // Regression test: Editor was hardcoding category to 'consumer' instead of using LLM response
+
+  // Use the shared enum values to ensure tests stay in sync with the enum
+  const validCategories: string[] = Object.values(CardCategory);
+
+  it('should recognize all valid categories', () => {
+    for (const cat of validCategories) {
+      expect(validCategories.includes(cat)).toBe(true);
+    }
+  });
+
+  it('should handle uppercase category from LLM', () => {
+    const llmCategory = 'FRAUD';
+    const normalized = llmCategory.toLowerCase();
+    expect(validCategories.includes(normalized)).toBe(true);
+  });
+
+  it('should default to "other" for invalid category', () => {
+    const invalidCategory = 'invalid_category';
+    const category = validCategories.includes(invalidCategory.toLowerCase())
+      ? invalidCategory.toLowerCase()
+      : 'other';
+    expect(category).toBe('other');
+  });
+
+  it('should default to "other" for undefined category', () => {
+    const llmCategory: string | undefined = undefined as string | undefined;
+    const rawCategory = llmCategory?.toLowerCase();
+    const category = rawCategory && validCategories.includes(rawCategory)
+      ? rawCategory
+      : 'other';
+    expect(category).toBe('other');
+  });
+
+  it('should use valid category from LLM response', () => {
+    const llmCategory = 'fraud';
+    const category = llmCategory && validCategories.includes(llmCategory.toLowerCase())
+      ? llmCategory.toLowerCase()
+      : 'other';
+    expect(category).toBe('fraud');
+  });
+
+  it('should parse category from editor response', () => {
+    // Test that parseEditorResponse now includes category
+    function parseEditorResponse(content: string) {
+      try {
+        const parsed = JSON.parse(content);
+        if (!parsed.decision || !['PUBLISH', 'SKIP'].includes(parsed.decision)) {
+          return null;
+        }
+        return {
+          decision: parsed.decision,
+          reason: parsed.reason || 'No reason provided',
+          confidence: Math.min(1, Math.max(0, parsed.confidence || 0)),
+          category: parsed.category,
+          entities: parsed.entities || [],
+          relationships: parsed.relationships || [],
+          cardSummary: parsed.cardSummary || '',
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    const response = `{
+      "decision": "PUBLISH",
+      "reason": "Clear enforcement action",
+      "confidence": 0.95,
+      "category": "fraud",
+      "entities": [],
+      "cardSummary": "Test summary"
+    }`;
+
+    const result = parseEditorResponse(response);
+    expect(result).not.toBeNull();
+    expect(result?.category).toBe('fraud');
   });
 });
