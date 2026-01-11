@@ -18,7 +18,7 @@ import { CardCategory as CardCategoryEnum } from '@ledger/shared';
 import { config } from '../config.js';
 import { invokeClaudeExtraction } from '../anthropic.js';
 import { logger } from '../logger.js';
-import { queryItems, putItem, stripKeys } from '../dynamodb.js';
+import { queryItems, putItem, stripKeys, scanItems } from '../dynamodb.js';
 import { createEntity, getEntity, findEntityByName } from './entities.js';
 import { createSource, captureHtmlSnapshot } from './sources.js';
 import { createCard, publishCard, listCards } from './cards.js';
@@ -589,15 +589,14 @@ async function updateIntakeEditorStatus(
 ): Promise<void> {
   const now = new Date().toISOString();
 
-  // Get current item first
-  const { items } = await queryItems<IntakeItem & { PK: string; SK: string }>({
+  // Get current item using scan with filter (intake items use FEED#<feedId> as PK, not INTAKE#<id>)
+  const { items } = await scanItems<IntakeItem & { PK: string; SK: string }>({
     TableName: INTAKE_TABLE,
-    KeyConditionExpression: 'PK = :pk AND SK = :sk',
+    FilterExpression: 'intakeId = :id',
     ExpressionAttributeValues: {
-      ':pk': `INTAKE#${intakeId}`,
-      ':sk': 'META',
+      ':id': intakeId,
     },
-    Limit: 1,
+    Limit: 100, // Scan more items since filter is applied after
   });
 
   if (items.length === 0) {

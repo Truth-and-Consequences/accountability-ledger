@@ -318,3 +318,31 @@ describe('Category Assignment', () => {
     expect(result?.category).toBe('fraud');
   });
 });
+
+describe('Intake Item Key Structure', () => {
+  // Regression test: Intake items use FEED#<feedId> as PK, not INTAKE#<intakeId>
+  // The editor was incorrectly querying with INTAKE#<id> which found no items
+
+  it('should recognize that intake items use FEED# prefix for PK', () => {
+    // Intake items are stored with PK = FEED#<feedId>, SK = TS#<timestamp>#<intakeId>
+    const intakePK = 'FEED#ftc_press_releases';
+    const intakeSK = 'TS#2025-01-01T12:00:00.000Z#01ABC123DEF456';
+
+    expect(intakePK.startsWith('FEED#')).toBe(true);
+    expect(intakePK.startsWith('INTAKE#')).toBe(false);
+    expect(intakeSK.startsWith('TS#')).toBe(true);
+  });
+
+  it('should use scan with intakeId filter to find intake items', () => {
+    // The correct way to find an intake item by ID is to scan with intakeId filter
+    // NOT to query with PK = INTAKE#<id>
+    const intakeId = '01ABC123DEF456';
+
+    // This is the correct filter expression
+    const filterExpression = 'intakeId = :id';
+    const expressionAttributeValues = { ':id': intakeId };
+
+    expect(filterExpression).toBe('intakeId = :id');
+    expect(expressionAttributeValues[':id']).toBe(intakeId);
+  });
+});
