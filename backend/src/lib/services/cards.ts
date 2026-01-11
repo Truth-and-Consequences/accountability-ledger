@@ -435,13 +435,26 @@ export async function listPublishedCards(
   const now = new Date();
   const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
+  // Build filter expression for category
+  const expressionAttributeValues: Record<string, unknown> = {
+    ':pk': `STATUS#PUBLISHED#${yearMonth}`,
+  };
+  const expressionAttributeNames: Record<string, string> = {};
+  let filterExpression: string | undefined;
+
+  if (query.category) {
+    expressionAttributeValues[':category'] = query.category;
+    expressionAttributeNames['#category'] = 'category';
+    filterExpression = '#category = :category';
+  }
+
   const { items, lastEvaluatedKey } = await queryItems<EvidenceCard & { PK: string; SK: string }>({
     TableName: TABLE,
     IndexName: 'GSI1',
     KeyConditionExpression: 'GSI1PK = :pk',
-    ExpressionAttributeValues: {
-      ':pk': `STATUS#PUBLISHED#${yearMonth}`,
-    },
+    ExpressionAttributeValues: expressionAttributeValues,
+    ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
+    FilterExpression: filterExpression,
     ScanIndexForward: false, // Most recent first
     Limit: limit,
     ExclusiveStartKey: exclusiveStartKey,
@@ -471,7 +484,8 @@ export async function listEntityCards(
       ':pk': `ENTITY#${entityId}`,
       ...(query.status && { ':status': query.status }),
     },
-    FilterExpression: query.status ? 'status = :status' : undefined,
+    ExpressionAttributeNames: query.status ? { '#status': 'status' } : undefined,
+    FilterExpression: query.status ? '#status = :status' : undefined,
     ScanIndexForward: false,
     Limit: limit,
     ExclusiveStartKey: exclusiveStartKey,
