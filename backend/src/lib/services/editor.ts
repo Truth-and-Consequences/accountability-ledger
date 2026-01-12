@@ -222,24 +222,39 @@ async function checkForDuplicate(
 
 /**
  * Get matched entities from database for an intake item's suggestions
+ * If matchedEntityId exists, use it. Otherwise, try to find by name.
  */
 async function getMatchedEntities(
   suggestions: SuggestedEntity[]
 ): Promise<Array<{ entityId: string; name: string; type: string }>> {
   const matched: Array<{ entityId: string; name: string; type: string }> = [];
+  const seenIds = new Set<string>();
 
   for (const suggestion of suggestions) {
+    let entity = null;
+
+    // First try the pre-matched ID
     if (suggestion.matchedEntityId) {
       try {
-        const entity = await getEntity(suggestion.matchedEntityId);
-        matched.push({
-          entityId: entity.entityId,
-          name: entity.name,
-          type: entity.type,
-        });
+        entity = await getEntity(suggestion.matchedEntityId);
       } catch {
-        // Entity no longer exists, skip
+        // Entity no longer exists
       }
+    }
+
+    // If no pre-matched entity, try to find by name
+    if (!entity && suggestion.extractedName) {
+      entity = await findEntityByName(suggestion.extractedName);
+    }
+
+    // Add to matched list if found and not already seen
+    if (entity && !seenIds.has(entity.entityId)) {
+      seenIds.add(entity.entityId);
+      matched.push({
+        entityId: entity.entityId,
+        name: entity.name,
+        type: entity.type,
+      });
     }
   }
 
