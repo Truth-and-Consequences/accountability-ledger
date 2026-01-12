@@ -39,13 +39,15 @@ describe('cards service', () => {
 
   describe('listPublishedCards', () => {
     it('queries published cards without category filter', async () => {
-      vi.mocked(dynamodb.queryItems).mockResolvedValueOnce({
+      // Mock returns empty for all months - function loops through months
+      vi.mocked(dynamodb.queryItems).mockResolvedValue({
         items: [],
         lastEvaluatedKey: undefined,
       });
 
       await listPublishedCards({ limit: 20 });
 
+      // First call should be for current month
       expect(dynamodb.queryItems).toHaveBeenCalledWith(
         expect.objectContaining({
           TableName: 'test-cards-table',
@@ -58,7 +60,8 @@ describe('cards service', () => {
     });
 
     it('filters by category when provided', async () => {
-      vi.mocked(dynamodb.queryItems).mockResolvedValueOnce({
+      // Mock returns empty for all months
+      vi.mocked(dynamodb.queryItems).mockResolvedValue({
         items: [],
         lastEvaluatedKey: undefined,
       });
@@ -79,7 +82,8 @@ describe('cards service', () => {
     });
 
     it('uses expression attribute name alias for category (reserved keyword protection)', async () => {
-      vi.mocked(dynamodb.queryItems).mockResolvedValueOnce({
+      // Mock returns empty for all months
+      vi.mocked(dynamodb.queryItems).mockResolvedValue({
         items: [],
         lastEvaluatedKey: undefined,
       });
@@ -91,6 +95,54 @@ describe('cards service', () => {
       // Should use #category alias, not raw 'category'
       expect(callArgs.FilterExpression).toBe('#category = :category');
       expect(callArgs.ExpressionAttributeNames).toEqual({ '#category': 'category' });
+    });
+
+    it('returns cards from multiple months when needed', async () => {
+      const card1 = {
+        PK: 'CARD#card1',
+        SK: 'LATEST',
+        cardId: 'card1',
+        title: 'Card 1',
+        status: 'PUBLISHED',
+      };
+      const card2 = {
+        PK: 'CARD#card2',
+        SK: 'LATEST',
+        cardId: 'card2',
+        title: 'Card 2',
+        status: 'PUBLISHED',
+      };
+
+      // First month returns 1 card, second month returns 1 card
+      vi.mocked(dynamodb.queryItems)
+        .mockResolvedValueOnce({ items: [card1], lastEvaluatedKey: undefined })
+        .mockResolvedValueOnce({ items: [card2], lastEvaluatedKey: undefined })
+        .mockResolvedValue({ items: [], lastEvaluatedKey: undefined });
+
+      const result = await listPublishedCards({ limit: 2 });
+
+      expect(result.items).toHaveLength(2);
+      expect(dynamodb.queryItems).toHaveBeenCalledTimes(2);
+    });
+
+    it('stops querying when limit is reached within a month', async () => {
+      const cards = [
+        { PK: 'CARD#card1', SK: 'LATEST', cardId: 'card1', title: 'Card 1', status: 'PUBLISHED' },
+        { PK: 'CARD#card2', SK: 'LATEST', cardId: 'card2', title: 'Card 2', status: 'PUBLISHED' },
+      ];
+
+      vi.mocked(dynamodb.queryItems).mockResolvedValueOnce({
+        items: cards,
+        lastEvaluatedKey: { PK: 'CARD#card2', SK: 'LATEST' },
+      });
+
+      const result = await listPublishedCards({ limit: 2 });
+
+      expect(result.items).toHaveLength(2);
+      expect(result.hasMore).toBe(true);
+      expect(result.cursor).toBeDefined();
+      // Should only query once since we got enough results
+      expect(dynamodb.queryItems).toHaveBeenCalledTimes(1);
     });
   });
 

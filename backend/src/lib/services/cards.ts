@@ -429,43 +429,80 @@ export async function listPublishedCards(
   query: CardQueryInput
 ): Promise<PaginatedResponse<EvidenceCard>> {
   const limit = query.limit || 20;
-  const exclusiveStartKey = query.cursor ? decodeCursor(query.cursor) : undefined;
+  const cursorData = query.cursor ? decodeCursor(query.cursor) : undefined;
 
-  // Get current month for partition key
-  const now = new Date();
-  const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  // Extract month offset from cursor if present (for cross-month pagination)
+  let monthsBack = 0;
+  let exclusiveStartKey: Record<string, unknown> | undefined;
+
+  if (cursorData) {
+    // Cursor format: { ...dynamoKey, _monthsBack?: number }
+    const { _monthsBack, ...dynamoKey } = cursorData as Record<string, unknown>;
+    monthsBack = typeof _monthsBack === 'number' ? _monthsBack : 0;
+    exclusiveStartKey = Object.keys(dynamoKey).length > 0 ? dynamoKey : undefined;
+  }
 
   // Build filter expression for category
-  const expressionAttributeValues: Record<string, unknown> = {
-    ':pk': `STATUS#PUBLISHED#${yearMonth}`,
-  };
   const expressionAttributeNames: Record<string, string> = {};
   let filterExpression: string | undefined;
 
   if (query.category) {
-    expressionAttributeValues[':category'] = query.category;
     expressionAttributeNames['#category'] = 'category';
     filterExpression = '#category = :category';
   }
 
-  const { items, lastEvaluatedKey } = await queryItems<EvidenceCard & { PK: string; SK: string }>({
-    TableName: TABLE,
-    IndexName: 'GSI1',
-    KeyConditionExpression: 'GSI1PK = :pk',
-    ExpressionAttributeValues: expressionAttributeValues,
-    ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
-    FilterExpression: filterExpression,
-    ScanIndexForward: false, // Most recent first
-    Limit: limit,
-    ExclusiveStartKey: exclusiveStartKey,
-  });
+  const allCards: EvidenceCard[] = [];
+  const now = new Date();
+  const maxMonthsBack = 24; // Look back up to 2 years
 
-  const cards = items.map((item) => stripKeys(item));
+  // Query across months until we have enough results
+  while (allCards.length < limit && monthsBack < maxMonthsBack) {
+    const checkDate = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
+    const yearMonth = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}`;
+
+    const expressionAttributeValues: Record<string, unknown> = {
+      ':pk': `STATUS#PUBLISHED#${yearMonth}`,
+    };
+    if (query.category) {
+      expressionAttributeValues[':category'] = query.category;
+    }
+
+    const { items, lastEvaluatedKey } = await queryItems<EvidenceCard & { PK: string; SK: string }>({
+      TableName: TABLE,
+      IndexName: 'GSI1',
+      KeyConditionExpression: 'GSI1PK = :pk',
+      ExpressionAttributeValues: expressionAttributeValues,
+      ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
+      FilterExpression: filterExpression,
+      ScanIndexForward: false, // Most recent first
+      Limit: limit - allCards.length,
+      ExclusiveStartKey: exclusiveStartKey,
+    });
+
+    const cards = items.map((item) => stripKeys(item));
+    allCards.push(...cards);
+
+    // If there are more items in this month, return with cursor
+    if (lastEvaluatedKey && allCards.length >= limit) {
+      return {
+        items: allCards.slice(0, limit),
+        cursor: encodeCursor({ ...lastEvaluatedKey, _monthsBack: monthsBack }),
+        hasMore: true,
+      };
+    }
+
+    // Move to next month
+    monthsBack++;
+    exclusiveStartKey = undefined; // Reset for new month
+  }
+
+  // Check if there might be more in older months
+  const hasMore = monthsBack < maxMonthsBack;
 
   return {
-    items: cards,
-    cursor: lastEvaluatedKey ? encodeCursor(lastEvaluatedKey) : undefined,
-    hasMore: !!lastEvaluatedKey,
+    items: allCards.slice(0, limit),
+    cursor: hasMore ? encodeCursor({ _monthsBack: monthsBack }) : undefined,
+    hasMore,
   };
 }
 
