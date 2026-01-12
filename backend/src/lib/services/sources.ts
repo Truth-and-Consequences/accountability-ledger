@@ -67,6 +67,36 @@ export async function createSource(
   return source;
 }
 
+/**
+ * Auto-verify a source from a trusted government feed
+ * This is used by the editor for sources from official government RSS feeds
+ */
+export async function autoVerifySource(
+  sourceId: string,
+  userId: string
+): Promise<Source> {
+  const existing = await getSource(sourceId);
+  const now = new Date().toISOString();
+
+  const updated: Source = {
+    ...existing,
+    verificationStatus: 'VERIFIED' as VerificationStatus,
+    updatedAt: now,
+    updatedBy: userId,
+  };
+
+  await putItem({
+    TableName: TABLE,
+    Item: {
+      PK: `SOURCE#${sourceId}`,
+      SK: 'META',
+      ...updated,
+    },
+  });
+
+  return updated;
+}
+
 export async function getSource(sourceId: string): Promise<Source> {
   const item = await getItem<Source & { PK: string; SK: string }>({
     TableName: TABLE,

@@ -20,7 +20,7 @@ import { invokeClaudeExtraction } from '../anthropic.js';
 import { logger } from '../logger.js';
 import { queryItems, putItem, stripKeys, scanItems } from '../dynamodb.js';
 import { createEntity, getEntity, findEntityByName } from './entities.js';
-import { createSource, captureHtmlSnapshot } from './sources.js';
+import { createSource, captureHtmlSnapshot, autoVerifySource } from './sources.js';
 import { createCard, publishCard, listCards } from './cards.js';
 import { createRelationship, publishRelationship } from './relationships.js';
 import { logAuditEvent } from './audit.js';
@@ -446,6 +446,11 @@ async function processItem(
       },
       EDITOR_USER_ID
     );
+
+    // Auto-verify sources from trusted government feeds
+    // These are official government RSS feeds (FTC, DOJ, GAO, SEC)
+    await autoVerifySource(source.sourceId, EDITOR_USER_ID);
+    editorLogger.debug({ sourceId: source.sourceId }, 'Auto-verified government source');
 
     // Capture HTML snapshot (non-blocking)
     try {
