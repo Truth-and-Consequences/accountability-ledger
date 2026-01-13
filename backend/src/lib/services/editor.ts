@@ -644,19 +644,21 @@ async function updateIntakeEditorStatus(
 
   const existing = items[0];
 
-  // Build updated item
+  // Build updated item - change status based on editor decision
+  const newStatus = editorStatus === 'APPROVED' ? 'PROMOTED' : 'REJECTED';
+
   const updated: IntakeItem & { PK: string; SK: string; GSI1PK: string; GSI1SK: string } = {
     ...existing,
+    status: newStatus as 'PROMOTED' | 'REJECTED',
     editorStatus,
     editorDecision: decision,
     reviewedAt: now,
     reviewedBy: EDITOR_USER_ID,
     ...(editorStatus === 'APPROVED' && {
-      status: 'PROMOTED' as const,
       promotedCardId: cardId,
       promotedSourceId: sourceId,
     }),
-    GSI1PK: editorStatus === 'APPROVED' ? 'STATUS#PROMOTED' : `STATUS#${existing.status}`,
+    GSI1PK: `STATUS#${newStatus}`,
     GSI1SK: `TS#${now}`,
   };
 
