@@ -503,7 +503,7 @@ export class LedgerStack extends cdk.Stack {
         INTAKE_TABLE: intakeTable.tableName,
         ENTITIES_TABLE: entitiesTable.tableName,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '', // Set via GitHub secret
-        ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307',
+        ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-20241022',
         EXTRACTION_MAX_TOKENS: '8192',
         EXTRACTION_MIN_CONFIDENCE: '0.5',
         EXTRACTION_MAX_ITEMS: '50',
@@ -574,7 +574,7 @@ export class LedgerStack extends cdk.Stack {
         KMS_SIGNING_KEY_ID: signingKey.keyId,
         // Anthropic
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
-        ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307',
+        ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-20241022',
         // Extraction prompt bucket (reused for editor prompt)
         EXTRACTION_PROMPT_BUCKET: extractionPromptBucket,
         // Editor config
