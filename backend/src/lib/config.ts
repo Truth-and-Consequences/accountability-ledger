@@ -47,7 +47,7 @@ export const config = {
 
   // LLM extraction settings
   extraction: {
-    maxTokens: parseInt(process.env.EXTRACTION_MAX_TOKENS || '4096', 10),
+    maxTokens: parseInt(process.env.EXTRACTION_MAX_TOKENS || '8192', 10),
     minConfidence: parseFloat(process.env.EXTRACTION_MIN_CONFIDENCE || '0.5'),
     maxItemsPerRun: parseInt(process.env.EXTRACTION_MAX_ITEMS || '50', 10),
     retryAttempts: parseInt(process.env.EXTRACTION_RETRY_ATTEMPTS || '3', 10),
