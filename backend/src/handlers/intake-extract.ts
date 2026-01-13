@@ -107,18 +107,9 @@ async function processItem(item: IntakeItem): Promise<void> {
     'Processing item for extraction'
   );
 
-  // Skip items with no summary (title-only extraction is low quality)
-  if (!item.summary || item.summary.length < 50) {
-    logger.info(
-      { intakeId: item.intakeId, summaryLength: item.summary?.length || 0 },
-      'Skipping item with insufficient content'
-    );
-    await updateIntakeItem(item, {
-      extractionStatus: 'SKIPPED' as ExtractionStatus,
-      extractedAt: new Date().toISOString(),
-    });
-    return;
-  }
+  // Note: We no longer skip items with short summaries since extractFromIntakeItem
+  // will fetch the full article content from the URL. This allows SEC litigation
+  // releases and other feeds with minimal RSS summaries to be processed.
 
   const { summary, entities, relationships, sources } = await extractFromIntakeItem(item);
 
