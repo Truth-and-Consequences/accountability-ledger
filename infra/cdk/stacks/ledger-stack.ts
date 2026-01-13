@@ -504,7 +504,7 @@ export class LedgerStack extends cdk.Stack {
         ENTITIES_TABLE: entitiesTable.tableName,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '', // Set via GitHub secret
         ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307',
-        EXTRACTION_MAX_TOKENS: '4096',
+        EXTRACTION_MAX_TOKENS: '8192',
         EXTRACTION_MIN_CONFIDENCE: '0.5',
         EXTRACTION_MAX_ITEMS: '50',
         // Prompt template stored in S3 (not in public repo) - configured via GitHub secrets
