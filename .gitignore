@@ -39,6 +39,8 @@ tmp/
 temp/
 *.tmp
 TODO.md
+tmpclaude-*-cwd
+response.json
 
 # Secrets (should never be committed)
 *.pem
