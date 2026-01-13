@@ -621,14 +621,22 @@ async function updateIntakeEditorStatus(
   const now = new Date().toISOString();
 
   // Get current item using scan with filter (intake items use FEED#<feedId> as PK, not INTAKE#<id>)
-  const { items } = await scanItems<IntakeItem & { PK: string; SK: string }>({
-    TableName: INTAKE_TABLE,
-    FilterExpression: 'intakeId = :id',
-    ExpressionAttributeValues: {
-      ':id': intakeId,
-    },
-    Limit: 100, // Scan more items since filter is applied after
-  });
+  // Must scan entire table since Limit applies before filter
+  let items: Array<IntakeItem & { PK: string; SK: string }> = [];
+  let lastKey: Record<string, unknown> | undefined;
+
+  do {
+    const result = await scanItems<IntakeItem & { PK: string; SK: string }>({
+      TableName: INTAKE_TABLE,
+      FilterExpression: 'intakeId = :id',
+      ExpressionAttributeValues: {
+        ':id': intakeId,
+      },
+      ExclusiveStartKey: lastKey,
+    });
+    items = result.items;
+    lastKey = result.lastEvaluatedKey;
+  } while (items.length === 0 && lastKey);
 
   if (items.length === 0) {
     throw new Error(`Intake item ${intakeId} not found`);
