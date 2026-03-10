@@ -582,15 +582,7 @@ const routes: Record<string, Record<string, RouteHandler>> = {
     handler: async (event, ctx) => {
       const intakeId = getPathParam(event, 'intakeId');
       const existing = await intakeService.getIntakeItem(intakeId);
-      const item = await intakeService.updateIntakeItem(existing, {
-        extractionStatus: undefined,
-        extractionError: undefined,
-        extractedAt: undefined,
-        extractedSummary: undefined,
-        suggestedEntities: undefined,
-        suggestedRelationships: undefined,
-        suggestedSources: undefined,
-      });
+      const item = await intakeService.resetExtraction(existing);
       await auditService.logAuditEvent(
         'RETRY_EXTRACTION',
         'intake',
@@ -609,15 +601,7 @@ const routes: Record<string, Record<string, RouteHandler>> = {
         const result = await intakeService.listIntakeByStatus('NEW', 50, cursor);
         for (const item of result.items) {
           if (item.extractionStatus === 'FAILED') {
-            await intakeService.updateIntakeItem(item, {
-              extractionStatus: undefined,
-              extractionError: undefined,
-              extractedAt: undefined,
-              extractedSummary: undefined,
-              suggestedEntities: undefined,
-              suggestedRelationships: undefined,
-              suggestedSources: undefined,
-            });
+            await intakeService.resetExtraction(item);
             count++;
           }
         }

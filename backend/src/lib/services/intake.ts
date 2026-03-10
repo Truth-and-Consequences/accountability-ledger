@@ -868,3 +868,36 @@ export async function updateIntakeItem(
 
   return updated;
 }
+
+/**
+ * Reset extraction fields so the item gets re-processed on the next extraction run.
+ * Deletes fields rather than setting undefined (DynamoDB rejects undefined values).
+ */
+export async function resetExtraction(item: IntakeItem): Promise<IntakeItem> {
+  const cleaned = { ...item };
+  delete cleaned.extractionStatus;
+  delete cleaned.extractionError;
+  delete cleaned.extractedAt;
+  delete cleaned.extractedSummary;
+  delete cleaned.suggestedEntities;
+  delete cleaned.suggestedRelationships;
+  delete cleaned.suggestedSources;
+
+  const gsi1pk = `STATUS#${cleaned.status}`;
+  const gsi1sk = `TS#${cleaned.ingestedAt}`;
+
+  await putItem({
+    TableName: TABLE,
+    Item: {
+      PK: `FEED#${item.feedId}`,
+      SK: `TS#${item.publishedAt}#${item.intakeId}`,
+      GSI1PK: gsi1pk,
+      GSI1SK: gsi1sk,
+      GSI2PK: `DEDUPE#${item.dedupeKey}`,
+      GSI2SK: item.intakeId,
+      ...cleaned,
+    },
+  });
+
+  return cleaned;
+}
