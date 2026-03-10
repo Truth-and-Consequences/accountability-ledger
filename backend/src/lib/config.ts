@@ -42,7 +42,7 @@ export const config = {
   // Anthropic API (for LLM extraction)
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY || '',
-    model: process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-20241022',
+    model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
   },
 
   // LLM extraction settings
