@@ -41,7 +41,7 @@ vi.mock('../lib/services/intake.js', () => ({
 }));
 
 vi.mock('../lib/services/relationships.js', () => ({
-  listRelationships: vi.fn(() => Promise.reject(new Error('Should not reach service'))),
+  listRelationships: vi.fn(() => Promise.resolve({ items: [], hasMore: false })),
 }));
 
 vi.mock('../lib/services/summary.js', () => ({
@@ -290,6 +290,31 @@ describe('Authorization Tests', () => {
 
       const body = JSON.parse(response.body);
       expect(body.status).toBe('healthy');
+    });
+
+    it('allows unauthenticated access to GET /relationships', async () => {
+      const event = createMockEvent({
+        rawPath: '/relationships',
+        requestContext: {
+          ...createMockEvent().requestContext,
+          http: {
+            method: 'GET',
+            path: '/relationships',
+            protocol: 'HTTP/1.1',
+            sourceIp: '127.0.0.1',
+            userAgent: 'test',
+          },
+        },
+      });
+
+      const result = await handler(event, mockContext);
+
+      const response = result as { statusCode: number; body: string };
+      expect(response.statusCode).toBe(200);
+
+      const body = JSON.parse(response.body);
+      expect(body.items).toBeDefined();
+      expect(Array.isArray(body.items)).toBe(true);
     });
 
     it('allows unauthenticated access to /entities', async () => {
