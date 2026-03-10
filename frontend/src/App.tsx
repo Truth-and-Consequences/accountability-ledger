@@ -19,6 +19,7 @@ import AdminSourceNewPage from './pages/admin/SourceNewPage';
 import AdminReviewQueuePage from './pages/admin/ReviewQueuePage';
 import AdminIntakeInboxPage from './pages/admin/IntakeInboxPage';
 import AdminRelationshipsPage from './pages/admin/RelationshipsPage';
+import AdminEntityGraphPage from './pages/admin/EntityGraphPage';
 
 function App() {
   return (
@@ -55,6 +56,7 @@ function App() {
           <Route path="review-queue" element={<AdminReviewQueuePage />} />
           <Route path="intake" element={<AdminIntakeInboxPage />} />
           <Route path="relationships" element={<AdminRelationshipsPage />} />
+          <Route path="graph" element={<AdminEntityGraphPage />} />
         </Route>
       </Routes>
     </AuthProvider>
