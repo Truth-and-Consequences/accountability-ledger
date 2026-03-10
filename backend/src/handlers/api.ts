@@ -578,6 +578,55 @@ const routes: Record<string, Record<string, RouteHandler>> = {
       return jsonResponse(200, item);
     },
   },
+  'POST /admin/intake/{intakeId}/retry-extraction': {
+    handler: async (event, ctx) => {
+      const intakeId = getPathParam(event, 'intakeId');
+      const existing = await intakeService.getIntakeItem(intakeId);
+      const item = await intakeService.updateIntakeItem(existing, {
+        extractionStatus: undefined,
+        extractionError: undefined,
+        extractedAt: undefined,
+        extractedSummary: undefined,
+        suggestedEntities: undefined,
+        suggestedRelationships: undefined,
+        suggestedSources: undefined,
+      });
+      await auditService.logAuditEvent(
+        'RETRY_EXTRACTION',
+        'intake',
+        intakeId,
+        ctx.userId!,
+        { requestId: ctx.requestId, metadata: { title: item.title } }
+      );
+      return jsonResponse(200, item);
+    },
+  },
+  'POST /admin/intake/retry-all-failed': {
+    handler: async (_event, ctx) => {
+      let count = 0;
+      let cursor: Record<string, unknown> | undefined;
+      do {
+        const result = await intakeService.listIntakeByStatus('NEW', 50, cursor);
+        for (const item of result.items) {
+          if (item.extractionStatus === 'FAILED') {
+            await intakeService.updateIntakeItem(item, {
+              extractionStatus: undefined,
+              extractionError: undefined,
+              extractedAt: undefined,
+              extractedSummary: undefined,
+              suggestedEntities: undefined,
+              suggestedRelationships: undefined,
+              suggestedSources: undefined,
+            });
+            count++;
+          }
+        }
+        cursor = result.lastEvaluatedKey;
+      } while (cursor);
+      ctx.logger.info({ count }, 'Reset failed extractions for retry');
+      return jsonResponse(200, { count });
+    },
+  },
   'POST /admin/intake/{intakeId}/promote': {
     handler: async (event, ctx) => {
       const intakeId = getPathParam(event, 'intakeId');

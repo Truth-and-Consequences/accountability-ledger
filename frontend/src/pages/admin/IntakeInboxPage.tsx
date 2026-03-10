@@ -120,6 +120,26 @@ export default function IntakeInboxPage() {
     }
   }
 
+  async function handleRetryExtraction(item: IntakeItem) {
+    try {
+      const updated = await api.retryExtraction(item.intakeId);
+      setItems((prev) => prev.map((i) => (i.intakeId === item.intakeId ? updated : i)));
+      showSuccess('Extraction queued for retry');
+    } catch (err) {
+      showError(err);
+    }
+  }
+
+  async function handleRetryAllFailed() {
+    try {
+      const { count } = await api.retryAllFailedExtractions();
+      showSuccess(`${count} item${count !== 1 ? 's' : ''} queued for retry`);
+      loadItems();
+    } catch (err) {
+      showError(err);
+    }
+  }
+
   function openPromoteModal(item: IntakeItem) {
     setSelectedItem(item);
 
@@ -268,6 +288,14 @@ export default function IntakeInboxPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Intake Inbox</h1>
         <div className="flex items-center gap-2">
+          {statusFilter === 'NEW' && items.some((i) => i.extractionStatus === 'FAILED') && (
+            <button
+              onClick={handleRetryAllFailed}
+              className="btn-secondary text-sm"
+            >
+              Retry All Failed
+            </button>
+          )}
           <label className="text-sm text-gray-600">Status:</label>
           <select
             value={statusFilter}
@@ -372,6 +400,14 @@ export default function IntakeInboxPage() {
                     >
                       Reject
                     </button>
+                    {item.extractionStatus === 'FAILED' && (
+                      <button
+                        onClick={() => handleRetryExtraction(item)}
+                        className="btn-secondary text-sm"
+                      >
+                        Retry
+                      </button>
+                    )}
                     <a
                       href={item.canonicalUrl}
                       target="_blank"

@@ -324,6 +324,8 @@ describe('Authorization Tests', () => {
       { method: 'PUT', path: '/admin/cards/card_123' },
       { method: 'GET', path: '/admin/intake' },
       { method: 'POST', path: '/admin/intake/int_123/promote' },
+      { method: 'POST', path: '/admin/intake/int_123/retry-extraction' },
+      { method: 'POST', path: '/admin/intake/retry-all-failed' },
       { method: 'POST', path: '/admin/relationships' },
       { method: 'GET', path: '/admin/relationships' },
     ];

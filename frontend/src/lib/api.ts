@@ -357,6 +357,18 @@ class ApiClient {
     });
   }
 
+  async retryExtraction(intakeId: string): Promise<IntakeItem> {
+    return this.request(`/admin/intake/${intakeId}/retry-extraction`, {
+      method: 'POST',
+    });
+  }
+
+  async retryAllFailedExtractions(): Promise<{ count: number }> {
+    return this.request(`/admin/intake/retry-all-failed`, {
+      method: 'POST',
+    });
+  }
+
   // Admin: Relationships
   async listAdminRelationships(params?: {
     entityId?: string;
