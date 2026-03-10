@@ -445,6 +445,17 @@ class ApiClient {
     return this.request(`/entities/${entityId}/relationships${qs ? `?${qs}` : ''}`);
   }
 
+  async listPublishedRelationships(params?: {
+    limit?: number;
+    cursor?: string;
+  }): Promise<PaginatedResponse<RelationshipWithEntities>> {
+    const searchParams = new URLSearchParams();
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.cursor) searchParams.set('cursor', params.cursor);
+    const qs = searchParams.toString();
+    return this.request(`/relationships${qs ? `?${qs}` : ''}`);
+  }
+
   async getRelationship(relationshipId: string): Promise<RelationshipWithEntities> {
     return this.request(`/relationships/${relationshipId}`);
   }

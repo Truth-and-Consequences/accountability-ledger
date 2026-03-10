@@ -867,6 +867,21 @@ const routes: Record<string, Record<string, RouteHandler>> = {
     },
   },
 
+  // Public: All published relationships (for network graph)
+  'GET /relationships': {
+    handler: async (event, _ctx) => {
+      const params = getQueryParams(event);
+      const limit = params.limit ? parseInt(params.limit as string, 10) : 100;
+      const cursor = params.cursor as string | undefined;
+      const result = await relationshipService.listRelationships({
+        status: 'PUBLISHED',
+        limit,
+        cursor,
+      });
+      return jsonResponse(200, result);
+    },
+  },
+
   // Public: Relationships (for entity pages)
   'GET /entities/{entityId}/relationships': {
     handler: async (event, _ctx) => {
