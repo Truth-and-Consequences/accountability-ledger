@@ -380,7 +380,7 @@ export class LedgerStack extends cdk.Stack {
 
     const apiFunction = new lambda.Function(this, 'ApiFunction', {
       functionName: `${prefix}-api`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_24_X,
       handler: 'handlers/api.handler',
       code: lambda.Code.fromAsset('../../backend/dist'),
       memorySize: 512,
@@ -429,7 +429,7 @@ export class LedgerStack extends cdk.Stack {
 
     const intakeIngestFunction = new lambda.Function(this, 'IntakeIngestFunction', {
       functionName: `${prefix}-intake-ingest`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_24_X,
       handler: 'handlers/intake-ingest.handler',
       code: lambda.Code.fromAsset('../../backend/dist'),
       memorySize: 512,
@@ -491,7 +491,7 @@ export class LedgerStack extends cdk.Stack {
 
     const intakeExtractFunction = new lambda.Function(this, 'IntakeExtractFunction', {
       functionName: `${prefix}-intake-extract`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_24_X,
       handler: 'handlers/intake-extract.handler',
       code: lambda.Code.fromAsset('../../backend/dist'),
       memorySize: 1024, // Higher memory for LLM processing
@@ -552,7 +552,7 @@ export class LedgerStack extends cdk.Stack {
 
     const intakeEditorFunction = new lambda.Function(this, 'IntakeEditorFunction', {
       functionName: `${prefix}-intake-editor`,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_24_X,
       handler: 'handlers/intake-editor.handler',
       code: lambda.Code.fromAsset('../../backend/dist'),
       memorySize: 1024, // Higher memory for LLM processing
